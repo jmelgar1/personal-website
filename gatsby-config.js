@@ -9,10 +9,10 @@
  */
 module.exports = {
   siteMetadata: {
-    title: `Gatsby Default Starter`,
-    description: `Kick off your next, great Gatsby project with this default starter. This barebones starter ships with the main Gatsby configuration files you might need.`,
-    author: `@gatsbyjs`,
-    siteUrl: `https://gatsbystarterdefaultsource.gatsbyjs.io/`,
+    title: `Josh Melgar's 3D Solar System`,
+    description: `An interactive 3D solar system explorer featuring Earth and other planets.`,
+    author: `@joshmelgar`,
+    siteUrl: `https://yourdomain.com/`,
   },
   plugins: [
     `gatsby-plugin-image`,
@@ -28,14 +28,12 @@ module.exports = {
     {
       resolve: `gatsby-plugin-manifest`,
       options: {
-        name: `gatsby-starter-default`,
-        short_name: `starter`,
+        name: `Josh Melgar's 3D Solar System`,
+        short_name: `Solar System`,
         start_url: `/`,
-        background_color: `#663399`,
-        // This will impact how browsers show your PWA/website
-        // https://css-tricks.com/meta-theme-color-and-trickery/
-        // theme_color: `#663399`,
-        display: `minimal-ui`,
+        background_color: `#000000`,
+        theme_color: `#000000`,
+        display: `fullscreen`,
         icon: `src/images/gatsby-icon.png`, // This path is relative to the root of the site.
       },
     },

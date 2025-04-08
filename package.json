@@ -5,6 +5,8 @@
   "version": "0.1.0",
   "author": "Kyle Mathews <mathews.kyle@gmail.com>",
   "dependencies": {
+    "@react-three/drei": "^9.88.17",
+    "@react-three/fiber": "^8.15.11",
     "gatsby": "^5.14.1",
     "gatsby-plugin-image": "^3.14.0",
     "gatsby-plugin-manifest": "^5.14.0",
@@ -14,9 +16,11 @@
     "gatsby-transformer-sharp": "^5.14.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "three": "^0.175.0",
     "typescript": "^5.8.3"
   },
   "devDependencies": {
+    "@types/three": "^0.175.0",
     "prettier": "^2.8.8"
   },
   "keywords": [
