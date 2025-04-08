@@ -25,7 +25,7 @@ _Have another more specific idea? You may want to check out our vibrant collecti
 
 1.  **Start developing.**
 
-    Navigate into your new site’s directory and start it up.
+    Navigate into your new site's directory and start it up.
 
     ```shell
     cd my-default-starter/
@@ -64,13 +64,13 @@ A quick look at the top-level files and directories you'll see in a typical Gats
 
 1.  **`/node_modules`**: This directory contains all of the modules of code that your project depends on (npm packages) are automatically installed.
 
-1.  **`/src`**: This directory will contain all of the code related to what you will see on the front-end of your site (what you see in the browser) such as your site header or a page template. `src` is a convention for “source code”.
+1.  **`/src`**: This directory will contain all of the code related to what you will see on the front-end of your site (what you see in the browser) such as your site header or a page template. `src` is a convention for "source code".
 
 1.  **`.gitignore`**: This file tells git which files it should not track / not maintain a version history for.
 
 1.  **`gatsby-browser.js`**: This file is where Gatsby expects to find any usage of the [Gatsby browser APIs](https://www.gatsbyjs.com/docs/reference/config-files/gatsby-browser/) (if any). These allow customization/extension of default Gatsby settings affecting the browser.
 
-1.  **`gatsby-config.js`**: This is the main configuration file for a Gatsby site. This is where you can specify information about your site (metadata) like the site title and description, which Gatsby plugins you’d like to include, etc. (Check out the [config docs](https://www.gatsbyjs.com/docs/reference/config-files/gatsby-config/) for more detail).
+1.  **`gatsby-config.js`**: This is the main configuration file for a Gatsby site. This is where you can specify information about your site (metadata) like the site title and description, which Gatsby plugins you'd like to include, etc. (Check out the [config docs](https://www.gatsbyjs.com/docs/reference/config-files/gatsby-config/) for more detail).
 
 1.  **`gatsby-node.js`**: This file is where Gatsby expects to find any usage of the [Gatsby Node APIs](https://www.gatsbyjs.com/docs/reference/config-files/gatsby-node/) (if any). These allow customization/extension of default Gatsby settings affecting pieces of the site build process.
 
@@ -78,7 +78,7 @@ A quick look at the top-level files and directories you'll see in a typical Gats
 
 1.  **`LICENSE`**: This Gatsby starter is licensed under the 0BSD license. This means that you can see this file as a placeholder and replace it with your own license.
 
-1.  **`package.json`**: A manifest file for Node.js projects, which includes things like metadata (the project’s name, author, etc). This manifest is how npm knows which packages to install for your project.
+1.  **`package.json`**: A manifest file for Node.js projects, which includes things like metadata (the project's name, author, etc). This manifest is how npm knows which packages to install for your project.
 
 1.  **`README.md`**: A text file containing useful reference information about your project.
 
@@ -95,5 +95,61 @@ Looking for more guidance? Full documentation for Gatsby lives [on the website](
 [Build, Deploy, and Host On Netlify](https://netlify.com)
 
 The fastest way to combine your favorite tools and APIs to build the fastest sites, stores, and apps for the web. And also the best place to build, deploy, and host your Gatsby sites.
+
+# Josh Melgar's 3D Solar System Website
+
+This is a personal website featuring an interactive 3D solar system using React Three Fiber and TypeScript.
+
+## Features
+
+- Interactive 3D Earth
+- Full-screen immersive experience
+- Camera controls with pan, zoom, and rotation
+- Responsive design
+- Future plans for additional planets and interactive elements
+
+## Technology Stack
+
+- [Gatsby](https://www.gatsbyjs.com/) - React-based static site generator
+- [React Three Fiber](https://github.com/pmndrs/react-three-fiber) - React renderer for Three.js
+- [Drei](https://github.com/pmndrs/drei) - Useful helpers for React Three Fiber
+- [TypeScript](https://www.typescriptlang.org/) - Typed JavaScript
+- [Three.js](https://threejs.org/) - 3D library for JavaScript
+
+## Development
+
+### Installation
+
+```bash
+npm install
+```
+
+### Development Server
+
+```bash
+npm run develop
+```
+
+### Building
+
+```bash
+npm run build
+```
+
+## Keyboard Controls
+
+- **Mouse Drag**: Rotate view
+- **Scroll**: Zoom in/out
+- **Press 'R'**: Toggle auto-rotation
+- **Press '+'**: Zoom in
+- **Press '-'**: Zoom out
+
+## Future Plans
+
+- Add additional planets to complete the solar system
+- Add orbital mechanics
+- Interactive information panels for celestial bodies
+- Particle effects for stars and space dust
+- Mobile touch controls
 
 <!-- AUTO-GENERATED-CONTENT:END -->

@@ -1,14 +1,12 @@
 import * as React from "react"
-
-import Layout from "../components/layout"
 import Seo from "../components/seo"
 
-const NotFoundPage = () => (
-  <Layout>
-    <h1>404: Not Found</h1>
-    <p>You just hit a route that doesn&#39;t exist... the sadness.</p>
-  </Layout>
-)
+const NotFoundPage = () => 
+  React.createElement('main', { style: { textAlign: 'center', padding: '50px', color: 'white', background: 'black', height: '100vh' }},
+    React.createElement('h1', null, "404: Not Found"),
+    React.createElement('p', null, "You just hit a route that doesn't exist... the sadness."),
+    React.createElement('a', { href: '/', style: { color: '#77aaff' }}, "Return to Solar System")
+  )
 
 export const Head = () => <Seo title="404: Not Found" />
 
