@@ -4,7 +4,11 @@ import { useTexture, Sphere } from '@react-three/drei'
 import type { Mesh } from 'three'
 import { DoubleSide, TextureLoader } from 'three'
 
-const Earth: React.FC = () => {
+interface EarthProps {
+  rotationSpeed?: number;
+}
+
+const Earth: React.FC<EarthProps> = ({ rotationSpeed = 0.05 }) => {
   const earthRef = useRef<Mesh>(null)
   const [textureLoaded, setTextureLoaded] = useState(false)
   
@@ -22,10 +26,10 @@ const Earth: React.FC = () => {
     }
   }, [earthTexture])
   
-  // Rotate Earth slowly
+  // Rotate Earth based on the provided speed
   useFrame(({ clock }) => {
     if (earthRef.current) {
-      earthRef.current.rotation.y = clock.getElapsedTime() * 0.05
+      earthRef.current.rotation.y = clock.getElapsedTime() * rotationSpeed
     }
   })
 
