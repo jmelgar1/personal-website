@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react'
+import React, { useRef, useState, useEffect, forwardRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useTexture, Sphere } from '@react-three/drei'
 import type { Mesh } from 'three'
@@ -8,7 +8,7 @@ interface EarthProps {
   rotationSpeed?: number;
 }
 
-const Earth: React.FC<EarthProps> = ({ rotationSpeed = 0.05 }) => {
+const Earth = forwardRef<Mesh, EarthProps>(({ rotationSpeed = 0.05 }, ref) => {
   const earthRef = useRef<Mesh>(null)
   const [textureLoaded, setTextureLoaded] = useState(false)
   
@@ -36,7 +36,7 @@ const Earth: React.FC<EarthProps> = ({ rotationSpeed = 0.05 }) => {
   return (
     <group>
       {/* Main Earth sphere */}
-      <Sphere ref={earthRef} args={[1, 64, 64]}>
+      <Sphere ref={ref || earthRef} args={[1, 64, 64]}>
         <meshStandardMaterial 
           map={earthTexture}
           emissive="#112244"
@@ -60,6 +60,8 @@ const Earth: React.FC<EarthProps> = ({ rotationSpeed = 0.05 }) => {
       </Sphere>
     </group>
   )
-}
+})
+
+Earth.displayName = 'Earth'
 
 export default Earth 

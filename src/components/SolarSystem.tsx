@@ -3,8 +3,11 @@ import { Canvas } from '@react-three/fiber'
 import { Stars, OrbitControls, Environment, useProgress, Html } from '@react-three/drei'
 import Earth from './planets/Earth'
 import Sun from './planets/Sun'
+import Moon from './planets/Moon'
+import Mars from './planets/Mars'
 import UIOverlay from './UIOverlay'
 import TabContent from './TabContent'
+import type { Mesh } from 'three'
 
 // Loader component that shows progress
 function Loader() {
@@ -43,8 +46,10 @@ const SolarSystem: React.FC<SolarSystemProps> = ({ className }) => {
   const [zoom, setZoom] = useState(3)
   const [activeTab, setActiveTab] = useState('Experience')
   
-  // Ref for the Canvas element
+  // Refs for the Canvas and Earth elements
   const canvasRef = useRef(null)
+  const earthRef = useRef<Mesh>(null)
+  const marsRef = useRef<Mesh>(null)
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -93,7 +98,18 @@ const SolarSystem: React.FC<SolarSystemProps> = ({ className }) => {
         { fallback: React.createElement(Loader) },
         React.createElement('ambientLight', { intensity: 0.2 }),
         React.createElement('pointLight', { position: [10, 10, 10], intensity: 1.5 }),
-        React.createElement(Earth, { rotationSpeed: earthRotateSpeed }),
+        
+        // Earth with Moon
+        React.createElement('group', { position: [0, 0, 0] },
+          React.createElement(Earth, { ref: earthRef, rotationSpeed: earthRotateSpeed }),
+          React.createElement(Moon, { earthRef })
+        ),
+        
+        // Mars positioned further out
+        React.createElement('group', { position: [10, 0, -1] },
+          React.createElement(Mars, { ref: marsRef, rotationSpeed: 0.04 })
+        ),
+        
         React.createElement(Sun),
         React.createElement(Stars, { radius: 100, depth: 50, count: 5000, factor: 4 }),
         React.createElement(Controls, { zoom }),
