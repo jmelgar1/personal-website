@@ -43,6 +43,7 @@ const Controls: React.FC<ControlsProps> = ({ zoom }) => {
 
 const SolarSystem: React.FC<SolarSystemProps> = ({ className }) => {
   const [earthRotateSpeed, setEarthRotateSpeed] = useState(0.05)
+  const [cloudsRotateSpeed, setCloudsRotateSpeed] = useState(0.07)
   const [zoom, setZoom] = useState(3)
   const [activeTab, setActiveTab] = useState('Experience')
   
@@ -55,6 +56,7 @@ const SolarSystem: React.FC<SolarSystemProps> = ({ className }) => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === 'r') {
         setEarthRotateSpeed(prev => prev === 0 ? 0.05 : 0)
+        setCloudsRotateSpeed(prev => prev === 0 ? 0.07 : 0)
       }
       if (e.key === '+') {
         setZoom(prev => Math.max(1.5, prev - 0.5))
@@ -83,6 +85,7 @@ const SolarSystem: React.FC<SolarSystemProps> = ({ className }) => {
     React.createElement(Canvas, {
       ref: canvasRef,
       camera: { position: [0, 0, zoom], fov: 60 },
+      shadows: false, // Disable shadows completely for now
       style: { 
         background: 'black',
         position: 'absolute',
@@ -96,12 +99,16 @@ const SolarSystem: React.FC<SolarSystemProps> = ({ className }) => {
       },
       children: React.createElement(Suspense, 
         { fallback: React.createElement(Loader) },
+        // Add a simple ambient light for visibility without shadows
         React.createElement('ambientLight', { intensity: 0.2 }),
-        React.createElement('pointLight', { position: [10, 10, 10], intensity: 1.5 }),
-        
+
         // Earth with Moon
         React.createElement('group', { position: [0, 0, 0] },
-          React.createElement(Earth, { ref: earthRef, rotationSpeed: earthRotateSpeed }),
+          React.createElement(Earth, { 
+            ref: earthRef, 
+            rotationSpeed: earthRotateSpeed,
+            cloudsRotationSpeed: cloudsRotateSpeed 
+          }),
           React.createElement(Moon, { earthRef })
         ),
         
@@ -110,6 +117,7 @@ const SolarSystem: React.FC<SolarSystemProps> = ({ className }) => {
           React.createElement(Mars, { ref: marsRef, rotationSpeed: 0.04 })
         ),
         
+        // Sun is now the main light source
         React.createElement(Sun),
         React.createElement(Stars, { radius: 100, depth: 50, count: 5000, factor: 4 }),
         React.createElement(Controls, { zoom }),

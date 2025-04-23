@@ -5,9 +5,9 @@ interface TabMenuProps {
 }
 
 const TabMenu: React.FC<TabMenuProps> = ({ onTabChange }) => {
-  const [activeTab, setActiveTab] = useState('Experience')
+  const [activeTab, setActiveTab] = useState('About Me')
   
-  const tabs = ['Experience', 'Projects', 'About Me']
+  const tabs = ['About Me', 'Experience', 'Projects']
   
   // Call onTabChange when component mounts to ensure initial tab is set
   useEffect(() => {
