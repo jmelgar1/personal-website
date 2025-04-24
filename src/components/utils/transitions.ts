@@ -11,6 +11,14 @@ interface PlanetTransitionParams {
   zoom: number;
   isUserInteractingRef: MutableRefObject<boolean>;
   animationFrameRef: MutableRefObject<number | null>;
+  setZoom?: (zoom: number) => void;
+}
+
+// We'll keep these as reference but won't force them on the user
+const PLANET_OPTIMAL_ZOOM = {
+  'About Me': 3, // Earth
+  'Experience': 2, // Moon (closer view)
+  'Projects': 4 // Mars (further away)
 }
 
 export const planetTransition = ({
@@ -22,7 +30,8 @@ export const planetTransition = ({
   target,
   zoom,
   isUserInteractingRef,
-  animationFrameRef
+  animationFrameRef,
+  setZoom
 }: PlanetTransitionParams) => {
   // Get current camera position and target
   const startPosition = [...camera.position.toArray()]
@@ -44,33 +53,43 @@ export const planetTransition = ({
       endTarget = [0, 0, 0]
   }
   
-  // Calculate transition path
-  const cameraDistance = zoom
+  // Use current zoom level - don't change it
+  const currentZoom = zoom;
   
-  // End position based on target with proper offset
+  console.log(`Transition: ${fromTab} → ${toTab}`)
+  console.log(`Maintaining current zoom: ${currentZoom.toFixed(4)}`)
+  
+  // Calculate current distance from camera to target
+  const startDist = Math.sqrt(
+    Math.pow(startPosition[0] - startTarget[0], 2) +
+    Math.pow(startPosition[1] - startTarget[1], 2) +
+    Math.pow(startPosition[2] - startTarget[2], 2)
+  )
+  
+  console.log(`Current camera distance: ${startDist.toFixed(4)}`)
+  
+  // Calculate transition path using current zoom
+  
+  // End position based on new target with same relative offset/zoom
+  // These calculations maintain the same relative viewing angle and distance
   let endPosition: [number, number, number]
-  switch(toTab) {
-    case 'About Me':
-      endPosition = [endTarget[0] + cameraDistance, endTarget[1] + cameraDistance/2, endTarget[2] + cameraDistance]
-      break
-    case 'Experience':
-      endPosition = [
-        endTarget[0] + cameraDistance/1.5, 
-        endTarget[1] + cameraDistance/2, 
-        endTarget[2] + cameraDistance/1.5
-      ]
-      break
-    case 'Projects':
-      endPosition = [endTarget[0] - cameraDistance, endTarget[1] + cameraDistance/2, endTarget[2] + cameraDistance]
-      break
-    default:
-      endPosition = [endTarget[0] + cameraDistance, endTarget[1] + cameraDistance/2, endTarget[2] + cameraDistance]
-  }
+  
+  // Calculate a vector from target to camera
+  const dirX = (startPosition[0] - startTarget[0]) / startDist
+  const dirY = (startPosition[1] - startTarget[1]) / startDist
+  const dirZ = (startPosition[2] - startTarget[2]) / startDist
+  
+  // Set end position using the same distance and similar angle
+  endPosition = [
+    endTarget[0] + dirX * currentZoom,
+    endTarget[1] + dirY * currentZoom, 
+    endTarget[2] + dirZ * currentZoom
+  ]
   
   // For a more natural arc, calculate a mid-point that's higher than direct path
   const midPoint: [number, number, number] = [
     (startPosition[0] + endPosition[0]) / 2,
-    Math.max(startPosition[1], endPosition[1]) + cameraDistance * 0.75, // Higher arc
+    Math.max(startPosition[1], endPosition[1]) + currentZoom * 0.75, // Higher arc
     (startPosition[2] + endPosition[2]) / 2
   ]
   
@@ -80,6 +99,7 @@ export const planetTransition = ({
   const animateTransition = () => {
     if (isUserInteractingRef.current) {
       // User took control, stop animation
+      console.log('Transition interrupted by user interaction')
       animationFrameRef.current = null
       return
     }
@@ -143,6 +163,16 @@ export const planetTransition = ({
       if (controls) {
         controls.target.set(endTarget[0], endTarget[1], endTarget[2])
       }
+      
+      // Log final distance for verification
+      const finalDistance = Math.sqrt(
+        Math.pow(camera.position.x - endTarget[0], 2) +
+        Math.pow(camera.position.y - endTarget[1], 2) +
+        Math.pow(camera.position.z - endTarget[2], 2)
+      )
+      
+      console.log('Animation complete, final camera distance:', finalDistance.toFixed(4))
+      
       animationFrameRef.current = null
     }
     

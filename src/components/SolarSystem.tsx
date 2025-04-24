@@ -1,5 +1,5 @@
 import React, { Suspense, useState, useEffect, useRef, useContext } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { Stars, Environment, useProgress, Html } from '@react-three/drei'
 import Earth from './planets/Earth'
 import Sun from './planets/Sun'
@@ -9,7 +9,7 @@ import UIOverlay from './UIOverlay'
 import TabContent from './TabContent'
 import PlanetControls from './controls/PlanetControls'
 import { MoonPositionProvider, MoonPositionContext } from './contexts/MoonPositionContext'
-import type { Mesh } from 'three'
+import type { Mesh, Vector3 } from 'three'
 
 // Loader component that shows progress
 function Loader() {
@@ -17,6 +17,50 @@ function Loader() {
   return React.createElement(Html, { center: true }, 
     React.createElement('div', { className: 'loading' }, `${progress.toFixed(0)}% loaded`)
   )
+}
+
+// Camera info collector component - stays inside Canvas
+const CameraInfoCollector = ({ onCameraInfoUpdate }: { onCameraInfoUpdate: (info: any) => void }) => {
+  const { camera, controls } = useThree()
+  
+  useFrame(() => {
+    // Get camera position
+    const position = camera.position.toArray()
+    
+    // Get camera target from controls if available
+    let target = [0, 0, 0]
+    if (controls && 'target' in controls) {
+      // @ts-ignore - we know OrbitControls has target property
+      const targetObj = controls.target
+      // @ts-ignore - accessing target properties
+      target = [targetObj.x || 0, targetObj.y || 0, targetObj.z || 0]
+    }
+    
+    // Calculate distance
+    const distance = Math.sqrt(
+      Math.pow(position[0] - target[0], 2) +
+      Math.pow(position[1] - target[1], 2) +
+      Math.pow(position[2] - target[2], 2)
+    )
+    
+    // Send info to parent component
+    onCameraInfoUpdate({
+      position,
+      target,
+      distance
+    })
+  })
+  
+  // This component doesn't render anything
+  return null
+}
+
+// Component to integrate TabContent with moon position from context
+const TabContentWithContext = ({ activeTab }: { activeTab: string }) => {
+  const { position: moonPosition } = useContext(MoonPositionContext)
+  
+  // Pass the moon position from context to TabContent
+  return <TabContent activeTab={activeTab} moonPosition={moonPosition as [number, number, number]} />
 }
 
 interface SolarSystemProps {
@@ -31,6 +75,12 @@ const SolarSystemInner: React.FC<SolarSystemProps> = ({ className }) => {
   const [zoom, setZoom] = useState(3)
   const [activeTab, setActiveTab] = useState('About Me')
   const [cameraTarget, setCameraTarget] = useState<[number, number, number]>([0, 0, 0])
+  const [isFocused, setIsFocused] = useState(true) // Track if camera is focused on a planet
+  const [cameraInfo, setCameraInfo] = useState({
+    position: [0, 0, 0],
+    target: [0, 0, 0],
+    distance: 0
+  })
   
   // Refs for the Canvas and planets
   const canvasRef = useRef(null)
@@ -88,6 +138,11 @@ const SolarSystemInner: React.FC<SolarSystemProps> = ({ className }) => {
   // Add wheel event handler to manage scroll zooming directly
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
+      // Skip if the event target is within a tab content panel
+      if ((e.target as HTMLElement)?.closest('[data-tab-content="true"]')) {
+        return;
+      }
+      
       if (e.deltaY !== 0) {
         e.preventDefault()
         
@@ -116,6 +171,12 @@ const SolarSystemInner: React.FC<SolarSystemProps> = ({ className }) => {
   const handleTabChange = (tab: string) => {
     setActiveTab(tab)
     console.log('Tab changed to:', tab)
+  }
+
+  // Handle focus state change from PlanetControls
+  const handleFocusChange = (focused: boolean) => {
+    setIsFocused(focused)
+    console.log('Focus state changed:', focused ? 'Focused' : 'Free camera')
   }
 
   return React.createElement('div', 
@@ -161,18 +222,29 @@ const SolarSystemInner: React.FC<SolarSystemProps> = ({ className }) => {
         
         // Sun is now the main light source
         React.createElement(Sun),
+        
+        // Add the 3D TabContent directly in the scene
+        React.createElement(TabContentWithContext, { activeTab }),
+        
         React.createElement(Stars, { radius: 100, depth: 50, count: 5000, factor: 2.5 }),
         React.createElement(PlanetControls, { 
           zoom,
           target: cameraTarget,
           activeTab,
-          moonPosition
+          moonPosition,
+          setZoom,
+          onFocusChange: handleFocusChange // Pass focus change handler
         }),
-        React.createElement(Environment, { preset: 'night' })
+        React.createElement(Environment, { preset: 'night' }),
+        
+        // Add camera info collector - this doesn't render anything visible
+        React.createElement(CameraInfoCollector, { 
+          onCameraInfoUpdate: setCameraInfo 
+        })
       )
     }),
     
-    // UI Overlay with pointer-events: none for most elements
+    // UI Overlay with pointer-events: none for most elements - now without TabContent
     React.createElement(UIOverlay, { 
       onTabChange: handleTabChange 
     },
@@ -196,10 +268,48 @@ const SolarSystemInner: React.FC<SolarSystemProps> = ({ className }) => {
         React.createElement('p', {}, '• Scroll to zoom'),
         React.createElement('p', {}, `• Press 'R' to toggle Earth rotation: ${earthRotateSpeed > 0 ? 'ON' : 'OFF'}`),
         React.createElement('p', {}, `• Press '+'/'-' to zoom in/out`)
+      )
+    ),
+    
+    // Debug overlay outside the Canvas - updated to show focus state
+    React.createElement('div', 
+      { 
+        style: { 
+          position: 'absolute', 
+          top: '10px', 
+          right: '10px', 
+          color: 'lime', 
+          background: 'rgba(0,0,0,0.7)', 
+          padding: '5px 10px',
+          borderRadius: '5px',
+          zIndex: 100,
+          fontFamily: 'monospace',
+          fontSize: '14px',
+          pointerEvents: 'none',
+          userSelect: 'none',
+          maxWidth: '300px',
+          overflow: 'hidden'
+        } 
+      },
+      React.createElement('div', {}, `Zoom (State): ${zoom.toFixed(4)}`),
+      React.createElement('div', {}, `Active Tab: ${activeTab}`),
+      React.createElement('div', {}, `Camera Mode: ${isFocused ? 'Focused' : 'Free'}`),
+      React.createElement('div', {}, `Camera Position:`),
+      React.createElement('div', { style: { marginLeft: '10px' }}, 
+        `X: ${cameraInfo.position[0].toFixed(2)} Y: ${cameraInfo.position[1].toFixed(2)} Z: ${cameraInfo.position[2].toFixed(2)}`
       ),
-      
-      // Tab Content
-      React.createElement(TabContent, { activeTab })
+      React.createElement('div', {}, `Camera Target:`),
+      React.createElement('div', { style: { marginLeft: '10px' }}, 
+        `X: ${cameraInfo.target[0].toFixed(2)} Y: ${cameraInfo.target[1].toFixed(2)} Z: ${cameraInfo.target[2].toFixed(2)}`
+      ),
+      React.createElement('div', {}, `Camera Distance: ${cameraInfo.distance.toFixed(4)}`),
+      React.createElement('div', { 
+        style: { 
+          marginTop: '5px', 
+          paddingTop: '5px', 
+          borderTop: '1px solid rgba(255,255,255,0.3)'
+        }
+      }, 'Tip: Double-click to toggle focus')
     )
   )
 }
