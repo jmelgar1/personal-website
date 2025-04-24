@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { planetTransition } from '../utils/transitions'
-import type { Mesh, Vector3 } from 'three'
 
 export interface PlanetControlsProps {
   zoom: number;

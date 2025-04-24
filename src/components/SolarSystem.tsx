@@ -4,7 +4,7 @@ import { Stars, Environment, useProgress, Html } from '@react-three/drei'
 import Earth from './planets/Earth'
 import Sun from './planets/Sun'
 import Mars from './planets/Mars'
-import MoonWithTracking from './planets/MoonWithTracking'
+import Moon from './planets/Moon'
 import UIOverlay from './UIOverlay'
 import TabContent from './TabContent'
 import PlanetControls from './controls/PlanetControls'
@@ -58,9 +58,17 @@ const CameraInfoCollector = ({ onCameraInfoUpdate }: { onCameraInfoUpdate: (info
 // Component to integrate TabContent with moon position from context
 const TabContentWithContext = ({ activeTab }: { activeTab: string }) => {
   const { position: moonPosition } = useContext(MoonPositionContext)
+  // Set fixed positions for Earth and Mars since they don't move
+  const earthPosition: [number, number, number] = [0, 0, 0]
+  const marsPosition: [number, number, number] = [0, 0, 16]
   
-  // Pass the moon position from context to TabContent
-  return <TabContent activeTab={activeTab} moonPosition={moonPosition as [number, number, number]} />
+  // Pass all planet positions to TabContent
+  return <TabContent 
+    activeTab={activeTab} 
+    moonPosition={moonPosition as [number, number, number]}
+    earthPosition={earthPosition}
+    marsPosition={marsPosition}
+  />
 }
 
 interface SolarSystemProps {
@@ -212,11 +220,11 @@ const SolarSystemInner: React.FC<SolarSystemProps> = ({ className }) => {
             rotationSpeed: earthRotateSpeed,
             cloudsRotationSpeed: cloudsRotateSpeed 
           }),
-          React.createElement(MoonWithTracking, { earthRef })
+          React.createElement(Moon, { earthRef })
         ),
         
         // Mars positioned further out
-        React.createElement('group', { position: [0, 0, 13] },
+        React.createElement('group', { position: [0, 0, 16] },
           React.createElement(Mars, { ref: marsRef, rotationSpeed: 0.04 })
         ),
         

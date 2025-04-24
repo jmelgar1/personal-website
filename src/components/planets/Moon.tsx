@@ -1,8 +1,9 @@
-import React, { useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
-import { useTexture, Sphere } from '@react-three/drei'
-import type { Mesh } from 'three'
-import { DoubleSide } from 'three'
+import React, { useRef, useContext } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { useTexture, Sphere } from '@react-three/drei';
+import type { Mesh } from 'three';
+import { DoubleSide } from 'three';
+import { MoonPositionContext } from '../contexts/MoonPositionContext';
 
 interface MoonProps {
   earthRef: React.RefObject<Mesh>;
@@ -10,40 +11,40 @@ interface MoonProps {
   orbitRadius?: number;
 }
 
-const Moon: React.FC<MoonProps> = ({ 
-  earthRef, 
+const Moon: React.FC<MoonProps> = ({
+  earthRef,
   orbitSpeed = 0.02,
-  orbitRadius = 3
+  orbitRadius = 5,
 }) => {
-  const moonRef = useRef<Mesh>(null)
-  
-  // Load moon texture
-  const moonTexture = useTexture('/textures/moon_map.png')
-  
-  // Update moon position to orbit around Earth
+  const moonRef = useRef<Mesh>(null);
+  const { setPosition } = useContext(MoonPositionContext);
+  const moonTexture = useTexture('/textures/moon_map.png');
+
   useFrame(({ clock }) => {
     if (moonRef.current && earthRef.current) {
-      const time = clock.getElapsedTime()
+      const time = clock.getElapsedTime();
+      const angle = time * orbitSpeed;
+      const x = Math.cos(angle) * orbitRadius + earthRef.current.position.x;
+      const z = Math.sin(angle) * orbitRadius + earthRef.current.position.z;
+
+      // Update Moon position
+      moonRef.current.position.set(x, 0, z);
+      moonRef.current.rotation.y = -angle;
+
+      // Update context
+      setPosition([x, 0, z]);
       
-      // Calculate orbit position
-      const angle = time * orbitSpeed
-      const x = Math.cos(angle) * orbitRadius
-      const z = Math.sin(angle) * orbitRadius
-      
-      // Update moon position relative to Earth
-      moonRef.current.position.x = earthRef.current.position.x + x
-      moonRef.current.position.z = earthRef.current.position.z + z
-      
-      // Rotate moon to face Earth
-      moonRef.current.rotation.y = -angle
+      // Debug moon position updates (log every few seconds to avoid console spam)
+      if (Math.floor(time) % 5 === 0 && Math.floor(time * 10) % 10 === 0) {
+        console.log('Moon updated position:', [x, 0, z]);
+      }
     }
-  })
+  });
 
   return (
     <group>
-      {/* Main Moon sphere */}
       <Sphere ref={moonRef} args={[0.27, 32, 32]}>
-        <meshStandardMaterial 
+        <meshStandardMaterial
           map={moonTexture}
           emissive="#111111"
           emissiveIntensity={0.05}
@@ -51,10 +52,8 @@ const Moon: React.FC<MoonProps> = ({
           metalness={0.1}
         />
       </Sphere>
-      
-      {/* Subtle atmosphere glow */}
       <Sphere args={[0.28, 32, 32]}>
-        <meshStandardMaterial 
+        <meshStandardMaterial
           color="#666666"
           transparent={true}
           opacity={0.1}
@@ -63,7 +62,7 @@ const Moon: React.FC<MoonProps> = ({
         />
       </Sphere>
     </group>
-  )
-}
+  );
+};
 
-export default Moon 
+export default Moon;

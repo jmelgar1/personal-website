@@ -1,4 +1,4 @@
-import React, { createContext, useState, ReactNode } from 'react'
+import React, { createContext, useState, ReactNode, useMemo } from 'react'
 
 interface MoonPositionContextType {
   position: [number, number, number];
@@ -17,9 +17,11 @@ interface MoonPositionProviderProps {
 export const MoonPositionProvider: React.FC<MoonPositionProviderProps> = ({ children }) => {
   const [position, setPosition] = useState<[number, number, number]>([3, 0, 0])
   
+  const contextValue = useMemo(() => ({ position, setPosition }), [position])
+  
   return React.createElement(
     MoonPositionContext.Provider,
-    { value: { position, setPosition } },
+    { value: contextValue },
     children
   )
-} 
+}
