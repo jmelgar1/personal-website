@@ -18,18 +18,24 @@ const HolographicPanel: React.FC<{ position: [number, number, number], children:
   const [hovered, setHovered] = useState(false)
   const [scale, setScale] = useState(0.25)
   
-  // Add subtle floating animation
+  // Add subtle floating animation and handle scale changes
   useFrame(({ clock }) => {
     if (groupRef.current) {
       groupRef.current.position.y += Math.sin(clock.getElapsedTime() * 2) * 0.0005
       // Subtle rotation for holographic effect
       groupRef.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.5) * 0.02
       
-      // Smoothly animate scale when hover state changes
+      // Smoothly animate scale when hover state changes - make the effect more dramatic
       if (hovered && scale < 0.28) {
-        setScale(prev => Math.min(0.28, prev + 0.005))
+        setScale(prev => {
+          const newScale = Math.min(0.28, prev + 0.015)
+          return newScale
+        })
       } else if (!hovered && scale > 0.25) {
-        setScale(prev => Math.max(0.25, prev - 0.005))
+        setScale(prev => {
+          const newScale = Math.max(0.25, prev - 0.015)
+          return newScale
+        })
       }
     }
   })
@@ -45,11 +51,13 @@ const HolographicPanel: React.FC<{ position: [number, number, number], children:
     };
 
     const handleMouseEnter = () => {
+      console.log('Mouse entered HTML element');
       setHovered(true);
       document.body.style.cursor = 'auto';
     };
 
     const handleMouseLeave = () => {
+      console.log('Mouse left HTML element');
       setHovered(false);
       document.body.style.cursor = 'grab';
     };
@@ -68,57 +76,116 @@ const HolographicPanel: React.FC<{ position: [number, number, number], children:
   
   // For Three.js pointer events
   const handlePointerEnter = useCallback(() => {
+    console.log('Pointer entered Three.js element');
     setHovered(true);
   }, []);
   
   const handlePointerLeave = useCallback(() => {
+    console.log('Pointer left Three.js element');
     setHovered(false);
   }, []);
   
   return (
-    <group ref={groupRef} position={position}>
-      {/* Holographic scanline effect - only subtle wireframe now */}
-      <mesh position={[0, 0, 0.01]} scale={hovered ? 1.1 : 1}>
-        <planeGeometry args={[6, 4.5]} />
-        <meshBasicMaterial
-          color="#80ccff"
-          opacity={0.00}
-          transparent={true}
-          wireframe={true}
-        />
-      </mesh>
-      
+    <group ref={groupRef} position={position}>  
       {/* Content container with ref for direct DOM access */}
       <Html
         transform
         scale={scale}
-        position={[0, 0, 0.02]}
+        position={[0, 0, 0]}
         style={{
           width: '22em',
-          height: '16em',
+          height: '20em',
           padding: '1.2em',
           color: 'white',
           backdropFilter: 'blur(2px)',
           borderRadius: '10px',
           pointerEvents: 'auto', 
           overflow: 'auto',
+          transition: 'box-shadow 0.3s ease-in-out, border 0.3s ease-in-out',
+          boxShadow: hovered ? '0 0 20px 5px #00a2ff, 0 0 5px #ffffff' : 'none',
+          border: hovered ? '2px solid rgba(0, 162, 255, 0.7)' : 'none',
+          backgroundColor: hovered ? 'rgba(0, 20, 40, 0.3)' : 'transparent'
         }}
         onClick={(e) => e.stopPropagation()}
         onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}
       >
+        <style>
+          {`
+            .hover-content {
+              height: 100%;
+              overflow: auto;
+              padding-right: 10px;
+              transition: all 0.3s ease-in-out;
+              position: relative;
+            }
+            .hover-content:hover {
+              transform: scale(1.05);
+              box-shadow: 0 0 15px rgba(0, 162, 255, 0.6);
+            }
+            .hover-indicator {
+              position: absolute;
+              top: 10px;
+              right: 10px;
+              width: 12px;
+              height: 12px;
+              border-radius: 50%;
+              background-color: #00a2ff;
+              opacity: 0;
+              transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+              z-index: 10;
+            }
+            .hover-content:hover .hover-indicator {
+              opacity: 1;
+              transform: scale(1.2);
+              box-shadow: 0 0 10px #00a2ff;
+            }
+          `}
+        </style>
         <div 
           ref={htmlRef}
-          style={{ 
-            height: '100%', 
-            overflow: 'auto',
-            paddingRight: '10px'
-          }}
+          className="hover-content"
           data-tab-content="true"
+          title="Scroll to see more content"
+          onMouseEnter={() => {
+            console.log('Raw onMouseEnter triggered');
+            setHovered(true);
+          }}
+          onMouseLeave={() => {
+            console.log('Raw onMouseLeave triggered');
+            setHovered(false);
+          }}
         >
           {children}
         </div>
       </Html>
+      
+      {/* More visible scroll indicator that shows on hover */}
+      {hovered && (
+        <Html
+          transform
+          position={[0, -1.4, 0.05]}
+          scale={0.4}
+        >
+          <div style={{
+            color: 'white',
+            opacity: 0.9,
+            textAlign: 'center',
+            animation: 'fadeInOut 1.5s infinite',
+            textShadow: '0 0 5px #00a2ff'
+          }}>
+            <style>
+              {`
+                @keyframes fadeInOut {
+                  0%, 100% { opacity: 0.5; transform: translateY(0); }
+                  50% { opacity: 1; transform: translateY(-5px); }
+                }
+              `}
+            </style>
+            ↕ Scroll to view more
+          </div>
+        </Html>
+      )}
     </group>
   )
 }
@@ -141,7 +208,7 @@ const ExperienceContent: React.FC<{ moonPosition?: [number, number, number] }> =
   return (
     <group ref={groupRef}>
       <HolographicPanel position={[0, 0, 0]}>
-        <h2 style={{ color: '#ffffff', textShadow: '0 0 8px #00a2ff', marginBottom: '0.8em', fontSize: '1.5em' }}>Experience</h2>
+        <h2 style={{ color: '#ffffff', textShadow: '0 0 8px #00a2ff', marginBottom: '0.8em', marginTop: 0, fontSize: '1.5em' }}>Experience</h2>
         <ul style={{ listStyleType: 'none', padding: 0 }}>
           <li style={{ marginBottom: '15px' }}>
             <h3 style={{ color: '#00a2ff', textShadow: '0 0 5px #00a2ff', marginBottom: '5px' }}>Software Engineer II</h3>
@@ -187,11 +254,11 @@ const ProjectsContent: React.FC<{ marsPosition?: [number, number, number] }> = (
   return (
     <group ref={groupRef}>
       <HolographicPanel position={[0, 0, 0]}>
-        <h2 style={{ color: '#ffffff', textShadow: '0 0 8px #00a2ff', marginBottom: '0.8em', fontSize: '1.5em' }}>Projects</h2>
+        <h2 style={{ color: '#ffffff', textShadow: '0 0 8px #00a2ff', marginBottom: '0.8em', marginTop: 0, fontSize: '1.5em' }}>Projects</h2>
         <ul style={{ listStyleType: 'none', padding: 0 }}>
           <li style={{ marginBottom: '15px' }}>
             <h3 style={{ color: '#00a2ff', textShadow: '0 0 5px #00a2ff', marginBottom: '5px' }}>Dark Matter Mapper</h3>
-            <p style={{ color: '#ffffff', opacity: 0.8 }}>Project for this ballsack.</p>
+            <p style={{ color: '#ffffff', opacity: 0.8 }}>Project for this random stuf blah blah blah blah</p>
             <p style={{ color: '#ffffff', opacity: 0.8 }}>Extra details for scrolling test.</p>
             <p style={{ color: '#ffffff', opacity: 0.8 }}>More details for scrolling test.</p>
           </li>
@@ -231,7 +298,7 @@ const AboutMeContent: React.FC<{ earthPosition?: [number, number, number] }> = (
   return (
     <group ref={groupRef}>
       <HolographicPanel position={[0, 0, 0]}>
-        <h2 style={{ color: '#ffffff', textShadow: '0 0 8px #00a2ff', marginBottom: '0.8em', fontSize: '1.5em' }}>About Me</h2>
+        <h2 style={{ color: '#ffffff', textShadow: '0 0 8px #00a2ff', marginBottom: '0.8em', marginTop: 0, fontSize: '1.5em' }}>About Me</h2>
         <p style={{ color: '#ffffff', opacity: 0.9, lineHeight: '1.4' }}>Hi! I'm Josh Melgar, a full-stack software engineer with a passion for creating cool stuff.</p>
         <p style={{ color: '#ffffff', opacity: 0.8, lineHeight: '1.4' }}>some random stuff here.</p>
         <p style={{ color: '#ffffff', opacity: 0.8, lineHeight: '1.4' }}>some random stuff here.</p>

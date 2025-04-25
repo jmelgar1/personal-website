@@ -9,7 +9,7 @@ import UIOverlay from './UIOverlay'
 import TabContent from './TabContent'
 import PlanetControls from './controls/PlanetControls'
 import { MoonPositionProvider, MoonPositionContext } from './contexts/MoonPositionContext'
-import type { Mesh, Vector3 } from 'three'
+import type { Mesh } from 'three'
 
 // Loader component that shows progress
 function Loader() {

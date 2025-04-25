@@ -9,10 +9,10 @@
  */
 module.exports = {
   siteMetadata: {
-    title: `Josh Melgar's 3D Solar System`,
-    description: `An interactive 3D solar system explorer featuring Earth and other planets.`,
+    title: `Joshua Melgar's Personal Website`,
+    description: `Personal website showcasing skills and projects.`,
     author: `@joshmelgar`,
-    siteUrl: `https://yourdomain.com/`,
+    siteUrl: `https://joshmelgar.com`,
   },
   plugins: [
     `gatsby-plugin-image`,
@@ -20,7 +20,7 @@ module.exports = {
       resolve: `gatsby-source-filesystem`,
       options: {
         name: `images`,
-        path: `${__dirname}/src/images`,
+        path: `${__dirname}/public/textures`,
       },
     },
     `gatsby-transformer-sharp`,
@@ -28,15 +28,19 @@ module.exports = {
     {
       resolve: `gatsby-plugin-manifest`,
       options: {
-        name: `Josh Melgar's 3D Solar System`,
-        short_name: `Solar System`,
+        name: `joshua-melgar-personal-site`,
+        short_name: `josh-melgar`,
         start_url: `/`,
         background_color: `#000000`,
-        theme_color: `#000000`,
-        display: `fullscreen`,
-        icon: `src/images/gatsby-icon.png`, // This path is relative to the root of the site.
+        // This will impact how browsers show your PWA/website
+        // https://css-tricks.com/meta-theme-color-and-trickery/
+        // theme_color: `#663399`,
+        display: `minimal-ui`,
+        icon: `public/textures/moon_map.png`, // This path is relative to the root of the site.
       },
     },
-    'gatsby-plugin-typescript',
+    // this (optional) plugin enables Progressive Web App + Offline functionality
+    // To learn more, visit: https://gatsby.dev/offline
+    // `gatsby-plugin-offline`,
   ],
 }
