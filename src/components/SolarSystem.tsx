@@ -146,35 +146,33 @@ const SolarSystemInner: React.FC<SolarSystemProps> = ({ className }) => {
   // Add wheel event handler to manage scroll zooming directly
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
-      // Skip if the event target is within a tab content panel
-      if ((e.target as HTMLElement)?.closest('[data-tab-content="true"]')) {
+      // Check the element directly under the mouse cursor
+      const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
+      if (elementUnderMouse && elementUnderMouse.closest('[data-tab-content="true"]')) {
+        // Mouse is over tab content; do not prevent default, allowing scrolling
         return;
       }
       
+      // Mouse is not over tab content; prevent default and handle zoom
       if (e.deltaY !== 0) {
-        e.preventDefault()
-        
-        // Zoom in/out based on wheel direction
-        const zoomFactor = 0.2 * Math.sign(e.deltaY)
-        const newZoom = Math.min(Math.max(2, zoom + zoomFactor), 20)
-        
+        e.preventDefault();
+        const zoomFactor = 0.2 * Math.sign(e.deltaY);
+        const newZoom = Math.min(Math.max(2, zoom + zoomFactor), 20);
         if (newZoom !== zoom) {
-          console.log('Wheel zoom:', zoom, '->', newZoom)
-          setZoom(newZoom)
+          console.log('Wheel zoom:', zoom, '->', newZoom);
+          setZoom(newZoom);
         }
       }
-    }
+    };
     
-    // Add wheel event listener to the canvas element
-    const canvas = canvasRef.current as HTMLElement | null
+    const canvas = canvasRef.current as HTMLElement | null;
     if (canvas) {
-      canvas.addEventListener('wheel', handleWheel, { passive: false })
-      
+      canvas.addEventListener('wheel', handleWheel, { passive: false });
       return () => {
-        canvas.removeEventListener('wheel', handleWheel)
-      }
+        canvas.removeEventListener('wheel', handleWheel);
+      };
     }
-  }, [zoom, canvasRef.current])
+  }, [zoom, canvasRef.current]);
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab)

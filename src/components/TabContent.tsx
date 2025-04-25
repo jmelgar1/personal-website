@@ -2,7 +2,6 @@ import React, { useRef, useState, useCallback, useEffect } from 'react'
 import { Text, Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { ThreeEvent } from '@react-three/fiber/dist/declarations/src/core/events'
 
 interface TabContentProps {
   activeTab: string;
@@ -46,8 +45,11 @@ const HolographicPanel: React.FC<{ position: [number, number, number], children:
     if (!htmlElement) return;
     
     const handleWheel = (e: WheelEvent) => {
+      if (htmlRef.current) {
+        htmlRef.current.scrollTop += e.deltaY;
+        e.preventDefault(); // Prevent default scrolling behavior
+      }
       e.stopPropagation();
-      // Don't prevent default so the HTML element can scroll
     };
 
     const handleMouseEnter = () => {
@@ -109,6 +111,10 @@ const HolographicPanel: React.FC<{ position: [number, number, number], children:
         onClick={(e) => e.stopPropagation()}
         onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}
+        onWheel={(e) => {
+          e.stopPropagation();
+          // Handle scrolling in the effect hook instead
+        }}
       >
         <style>
           {`
@@ -118,6 +124,19 @@ const HolographicPanel: React.FC<{ position: [number, number, number], children:
               padding-right: 10px;
               transition: all 0.3s ease-in-out;
               position: relative;
+              scrollbar-width: thin;
+              scrollbar-color: rgba(0, 162, 255, 0.6) rgba(0, 0, 0, 0.2);
+            }
+            .hover-content::-webkit-scrollbar {
+              width: 8px;
+            }
+            .hover-content::-webkit-scrollbar-track {
+              background: rgba(0, 0, 0, 0.2);
+              border-radius: 4px;
+            }
+            .hover-content::-webkit-scrollbar-thumb {
+              background-color: rgba(0, 162, 255, 0.6);
+              border-radius: 4px;
             }
             .hover-content:hover {
               transform: scale(1.05);
@@ -154,6 +173,11 @@ const HolographicPanel: React.FC<{ position: [number, number, number], children:
           onMouseLeave={() => {
             console.log('Raw onMouseLeave triggered');
             setHovered(false);
+          }}
+          onWheel={(e) => {
+            e.stopPropagation();
+            e.currentTarget.scrollTop += e.deltaY;
+            e.preventDefault();
           }}
         >
           {children}
