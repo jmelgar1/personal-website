@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { useTexture, Sphere } from '@react-three/drei';
 import type { Mesh } from 'three';
 import { DoubleSide } from 'three';
-import { MoonPositionContext } from '../contexts/MoonPositionContext';
+import { PlanetPositionContext } from '../../../contexts/PlanetPositionContext';
 
 interface MoonProps {
   earthRef: React.RefObject<Mesh>;
@@ -17,7 +17,7 @@ const Moon: React.FC<MoonProps> = ({
   orbitRadius = 5,
 }) => {
   const moonRef = useRef<Mesh>(null);
-  const { setPosition } = useContext(MoonPositionContext);
+  const { setMoonPosition } = useContext(PlanetPositionContext);
   const moonTexture = useTexture('/textures/moon_map.png');
 
   useFrame(({ clock }) => {
@@ -32,7 +32,7 @@ const Moon: React.FC<MoonProps> = ({
       moonRef.current.rotation.y = -angle;
 
       // Update context
-      setPosition([x, 0, z]);
+      setMoonPosition([x, 0, z]);
       
       // Debug moon position updates (log every few seconds to avoid console spam)
       if (Math.floor(time) % 5 === 0 && Math.floor(time * 10) % 10 === 0) {
