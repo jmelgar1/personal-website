@@ -2,7 +2,6 @@ import React, { useRef, useState, useEffect, forwardRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useTexture, Sphere } from '@react-three/drei'
 import type { Mesh } from 'three'
-import { DoubleSide } from 'three'
 
 interface MarsProps {
   rotationSpeed?: number;
@@ -13,7 +12,7 @@ const Mars = forwardRef<Mesh, MarsProps>(({ rotationSpeed = 0.04 }, ref) => {
   const [textureLoaded, setTextureLoaded] = useState(false)
   
   // Load Mars texture
-  const marsTexture = useTexture('/textures/mars_map.png', (texture) => {
+  const marsTexture = useTexture('/images/planets/mars/mars_map.png', (texture) => {
     setTextureLoaded(true)
     console.log('Mars texture loaded successfully')
   })

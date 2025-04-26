@@ -1,8 +1,7 @@
-import React, { useRef, useState, useEffect, forwardRef, RefObject } from 'react'
+import React, { useRef, useState, useEffect, forwardRef} from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useTexture, Sphere } from '@react-three/drei'
 import type { Mesh } from 'three'
-import { DoubleSide, TextureLoader } from 'three'
 
 interface EarthProps {
   rotationSpeed?: number;
@@ -16,17 +15,15 @@ const Earth = forwardRef<Mesh, EarthProps>(({
   const earthRef = useRef<Mesh>(null)
   const cloudsRef = useRef<Mesh>(null)
   const [textureLoaded, setTextureLoaded] = useState(false)
-  const [cloudsLoaded, setCloudsLoaded] = useState(false)
+  const [_, setCloudsLoaded] = useState(false)
   
   // Load Earth textures - day texture and optional night texture
-  const earthDayTexture = useTexture('/textures/earth_map.jpg', (texture) => {
+  const earthDayTexture = useTexture('/images/planets/earth/earth_map.jpg', (texture) => {
     setTextureLoaded(true)
-    console.log('Earth day texture loaded successfully')
   })
   
-  const cloudsTexture = useTexture('/textures/earth_clouds.jpg', (texture) => {
+  const cloudsTexture = useTexture('/images/planets/earth/earth_clouds.jpg', (texture) => {
     setCloudsLoaded(true)
-    console.log('Earth clouds texture loaded successfully')
   })
   
   // Apply some enhancements to the textures

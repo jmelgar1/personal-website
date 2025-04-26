@@ -1,7 +1,5 @@
 import React from 'react'
-import ExperienceContent from '../content/ExperienceContent'
-import ProjectsContent from '../content/ProjectsContent'
-import AboutMeContent from '../content/AboutMeContent'
+import HolographicContent from '../entities/ui/HolographicContent'
 
 interface TabContentProps {
   activeTab: string;
@@ -19,11 +17,11 @@ const TabContent: React.FC<TabContentProps> = ({
 }) => {
   switch (activeTab) {
     case 'Experience':
-      return <ExperienceContent moonPosition={moonPosition} />
+      return <HolographicContent type="experience" planetPosition={moonPosition} offset={[2, 0.5, 0]} />
     case 'Projects':
-      return <ProjectsContent marsPosition={marsPosition} />
+      return <HolographicContent type="projects" planetPosition={marsPosition} offset={[2.5, 0, 0]} />
     case 'About Me':
-      return <AboutMeContent earthPosition={earthPosition} />
+      return <HolographicContent type="aboutMe" planetPosition={earthPosition} offset={[2.5, 0, 0]} />
     default:
       return null
   }

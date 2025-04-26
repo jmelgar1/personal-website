@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@types/three": "^0.175.0",
+    "patch-package": "^8.0.0",
     "prettier": "^2.8.8"
   },
   "keywords": [
@@ -34,7 +35,8 @@
     "start": "gatsby develop",
     "serve": "gatsby serve",
     "clean": "gatsby clean",
-    "test": "echo \"Write tests! -> https://gatsby.dev/unit-testing\" && exit 1"
+    "test": "echo \"Write tests! -> https://gatsby.dev/unit-testing\" && exit 1",
+    "postinstall": "patch-package"
   },
   "repository": {
     "type": "git",

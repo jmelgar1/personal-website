@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import { 
   DirectionalLight, 
   TextureLoader, 
@@ -14,20 +14,19 @@ const Sun: React.FC = () => {
   const pointLightRef = useRef<PointLight>(null)
   const [textures, setTextures] = useState<Texture[]>([])
   const [texturesLoaded, setTexturesLoaded] = useState(false)
-  const { scene } = useThree()
   
   // Position the Sun to create optimal lens flare effect
   const sunPosition = [25, 10, -50]
 
   // Load textures with the correct paths that work in the app
   useEffect(() => {
-    console.log('Loading lens flare textures from /textures/lensflare/...');
+    console.log('Loading lens flare textures...');
     
     const textureLoader = new TextureLoader();
     const texturesToLoad = [
-      '/textures/lensflare/lensflare0.png',
-      '/textures/lensflare/lensflare1.png',
-      '/textures/lensflare/lensflare2.png'
+      '/images/lensflare/lensflare0.png',
+      '/images/lensflare/lensflare1.png',
+      '/images/lensflare/lensflare2.png'
     ];
     
     const loadedTextures: Texture[] = [];

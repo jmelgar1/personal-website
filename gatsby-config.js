@@ -20,7 +20,7 @@ module.exports = {
       resolve: `gatsby-source-filesystem`,
       options: {
         name: `images`,
-        path: `${__dirname}/public/textures`,
+        path: `${__dirname}/static/images`,
       },
     },
     `gatsby-transformer-sharp`,
@@ -36,7 +36,11 @@ module.exports = {
         // https://css-tricks.com/meta-theme-color-and-trickery/
         // theme_color: `#663399`,
         display: `minimal-ui`,
-        icon: `public/textures/moon_map.png`, // This path is relative to the root of the site.
+        icon: `static/images/planets/mars/mars_map.png`,
+        icon_options: {
+          // For non-square icons, set this to ignore the warning
+          purpose: `any maskable`,
+        },
       },
     },
     // this (optional) plugin enables Progressive Web App + Offline functionality

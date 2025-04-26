@@ -1,0 +1,7 @@
+import * as React from 'react';
+import * as THREE from 'three';
+// Fix for Three.js r150+ which removed LinearEncoding
+const LinearEncoding = 'NoColorSpace';
+import { extend, useFrame } from '@react-three/fiber';
+import { useRef, useMemo } from 'react';
+import { SpotLightMaterial } from './SpotLightMaterial'; 

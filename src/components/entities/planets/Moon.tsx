@@ -18,7 +18,7 @@ const Moon: React.FC<MoonProps> = ({
 }) => {
   const moonRef = useRef<Mesh>(null);
   const { setMoonPosition } = useContext(PlanetPositionContext);
-  const moonTexture = useTexture('/textures/moon_map.png');
+  const moonTexture = useTexture('/images/planets/earth/moon/moon_map.png');
 
   useFrame(({ clock }) => {
     if (moonRef.current && earthRef.current) {
