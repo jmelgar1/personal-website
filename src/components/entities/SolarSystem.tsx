@@ -41,6 +41,8 @@ const SolarSystemInner: React.FC<{ className?: string }> = ({ className }) => {
   } = useAppState()
   const planetPositions = React.useContext(PlanetPositionContext)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const wheelVelocityRef = useRef(0)
+  const momentumFrameRef = useRef<number | null>(null)
 
   // Implement keyboard zoom handling
   useEffect(() => {
@@ -71,153 +73,43 @@ const SolarSystemInner: React.FC<{ className?: string }> = ({ className }) => {
     return () => window.removeEventListener('keydown', handleKeyPress)
   }, [zoom, setZoom, setEarthRotateSpeed, setCloudsRotateSpeed])
 
- useEffect(() => {
-  let velocity = 0;
-  let lastScrollTime = 0;
-  let animationFrameId: number | null = null;
-  const decayRate = 0.92; // Controls how quickly the zoom slows down (0 to 1, closer to 1 is slower decay)
-  const zoomSensitivity = 0.002; // Adjusts how much each scroll impacts velocity
-  const minVelocityThreshold = 0.001; // Stop animation when velocity is below this
-
-  const animateZoom = (timestamp: number) => {
-    if (Math.abs(velocity) < minVelocityThreshold) {
-      velocity = 0;
-      animationFrameId = null;
-      return;
-    }
-
-    // Apply velocity to zoom
-    const newZoom = Math.min(Math.max(2, zoom + velocity), 20);
-    if (newZoom !== zoom) {
-      setZoom(newZoom);
-      console.log('Inertia zoom:', zoom, '->', newZoom);
-    }
-
-    // Decay velocity
-    velocity *= decayRate;
-
-    // Continue animation
-    animationFrameId = requestAnimationFrame(animateZoom);
-  };
-
-  const handleWheel = (e: WheelEvent) => {
-    // Skip if the event target is within a tab content panel
-    if ((e.target as HTMLElement)?.closest('[data-tab-content="true"]')) {
-      return;
-    }
-
-    if (e.deltaY !== 0) {
-      e.preventDefault();
-
-      // Update velocity based on scroll direction and intensity
-      const scrollDelta = e.deltaY * zoomSensitivity;
-      velocity += scrollDelta;
-      lastScrollTime = performance.now();
-
-      // Ensure immediate zoom response
-      const zoomFactor = scrollDelta;
-      const newZoom = Math.min(Math.max(2, zoom + zoomFactor), 20);
-
-      if (newZoom !== zoom) {
-        setZoom(newZoom);
-        console.log('Wheel zoom:', zoom, '->', newZoom);
+  // Add wheel event handler with smooth momentum scrolling
+  useEffect(() => {
+    const animateMomentum = () => {
+      const velocity = wheelVelocityRef.current
+      if (Math.abs(velocity) < 0.001) {
+        wheelVelocityRef.current = 0
+        return
       }
-
-      // Cancel any existing animation and start a new one
-      if (animationFrameId !== null) {
-        cancelAnimationFrame(animationFrameId);
-      }
-      animationFrameId = requestAnimationFrame(animateZoom);
+      setZoom(prevZoom => {
+        const next = Math.min(Math.max(2, prevZoom + velocity), 20)
+        return next
+      })
+      wheelVelocityRef.current *= 0.77
+      momentumFrameRef.current = requestAnimationFrame(animateMomentum)
     }
-  };
 
-  // Add wheel event listener to the canvas element
-  if (canvasRef.current) {
-    canvasRef.current.addEventListener('wheel', handleWheel, { passive: false });
+    const handleWheel = (e: WheelEvent) => {
+      if ((e.target as HTMLElement)?.closest('[data-tab-content="true"]')) return
+      e.preventDefault()
+      // Scroll down should zoom out (increase zoom), scroll up zoom in (decrease zoom)
+      const delta = Math.sign(e.deltaY) * 0.2
+      wheelVelocityRef.current += delta
+      if (momentumFrameRef.current !== null) {
+        cancelAnimationFrame(momentumFrameRef.current)
+      }
+      momentumFrameRef.current = requestAnimationFrame(animateMomentum)
+    }
 
+    const canvas = canvasRef.current
+    if (canvas) {
+      canvas.addEventListener('wheel', handleWheel, { passive: false })
+    }
     return () => {
-      if (canvasRef.current) {
-        canvasRef.current.removeEventListener('wheel', handleWheel);
-      }
-      if (animationFrameId !== null) {
-        cancelAnimationFrame(animationFrameId);
-      }
-    };
-  }
-}, [zoom, setZoom]);useEffect(() => {
-  let velocity = 0;
-  let lastScrollTime = 0;
-  let animationFrameId: number | null = null;
-  const decayRate = 0.92; // Controls how quickly the zoom slows down (0 to 1, closer to 1 is slower decay)
-  const zoomSensitivity = 0.002; // Adjusts how much each scroll impacts velocity
-  const minVelocityThreshold = 0.001; // Stop animation when velocity is below this
-
-  const animateZoom = (timestamp: number) => {
-    if (Math.abs(velocity) < minVelocityThreshold) {
-      velocity = 0;
-      animationFrameId = null;
-      return;
+      if (canvas) canvas.removeEventListener('wheel', handleWheel)
+      if (momentumFrameRef.current !== null) cancelAnimationFrame(momentumFrameRef.current)
     }
-
-    // Apply velocity to zoom
-    const newZoom = Math.min(Math.max(2, zoom + velocity), 20);
-    if (newZoom !== zoom) {
-      setZoom(newZoom);
-      console.log('Inertia zoom:', zoom, '->', newZoom);
-    }
-
-    // Decay velocity
-    velocity *= decayRate;
-
-    // Continue animation
-    animationFrameId = requestAnimationFrame(animateZoom);
-  };
-
-  const handleWheel = (e: WheelEvent) => {
-    // Skip if the event target is within a tab content panel
-    if ((e.target as HTMLElement)?.closest('[data-tab-content="true"]')) {
-      return;
-    }
-
-    if (e.deltaY !== 0) {
-      e.preventDefault();
-
-      // Update velocity based on scroll direction and intensity
-      const scrollDelta = e.deltaY * zoomSensitivity;
-      velocity += scrollDelta;
-      lastScrollTime = performance.now();
-
-      // Ensure immediate zoom response
-      const zoomFactor = scrollDelta;
-      const newZoom = Math.min(Math.max(2, zoom + zoomFactor), 20);
-
-      if (newZoom !== zoom) {
-        setZoom(newZoom);
-        console.log('Wheel zoom:', zoom, '->', newZoom);
-      }
-
-      // Cancel any existing animation and start a new one
-      if (animationFrameId !== null) {
-        cancelAnimationFrame(animationFrameId);
-      }
-      animationFrameId = requestAnimationFrame(animateZoom);
-    }
-  };
-
-  // Add wheel event listener to the canvas element
-  if (canvasRef.current) {
-    canvasRef.current.addEventListener('wheel', handleWheel, { passive: false });
-
-    return () => {
-      if (canvasRef.current) {
-        canvasRef.current.removeEventListener('wheel', handleWheel);
-      }
-      if (animationFrameId !== null) {
-        cancelAnimationFrame(animationFrameId);
-      }
-    };
-  }
-}, [zoom, setZoom]);
+  }, [setZoom])
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab)
