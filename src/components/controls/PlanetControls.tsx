@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useContext, forwardRef, useImperativeHandle } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
-import { planetTransition, panelTransition } from '../utils/transitions'
+import { planetTransition } from '../transitions/planetTransitions'
+import { panelTransition } from '../transitions/panelTransitions'
 import { PlanetPositionContext } from '../../contexts/PlanetPositionContext'
 import * as THREE from 'three'
 
