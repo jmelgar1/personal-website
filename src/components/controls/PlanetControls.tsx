@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useContext } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { planetTransition } from '../utils/transitions'
+import { PlanetPositionContext } from '../../contexts/PlanetPositionContext'
 
 export interface PlanetControlsProps {
   zoom: number;
@@ -29,6 +30,7 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
   const dragDistanceRef = useRef(0)
   const lastTargetRef = useRef<[number, number, number]>([0, 0, 0])
   const snapBackAnimationRef = useRef<number | null>(null)
+  const planetPositions = useContext(PlanetPositionContext)
   
   // Constants for unfocusing behavior - increased threshold for more intentional unfocusing
   const UNFOCUS_DISTANCE_THRESHOLD = 10 // Requires more dragging to unfocus
@@ -38,11 +40,11 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
   // Get current focus target based on active tab
   const getCurrentFocusTarget = (): [number, number, number] => {
     if (activeTab === 'Experience') {
-      return moonPosition
+      return planetPositions.moonPosition
     } else if (activeTab === 'Projects') {
-      return [0, 0, 13] // Mars position
+      return planetPositions.marsPosition
     } else {
-      return [0, 0, 0] // Earth position
+      return planetPositions.earthPosition
     }
   }
   
@@ -51,8 +53,17 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
     if (controlsRef.current) {
       const controls = controlsRef.current
       
+      // Store reference to controls in camera's userData for other components to access
+      camera.userData.controls = controls;
+      
+      // Add flags to communicate with other components
+      controls.isUserInteracting = false;
+      controls.isTransitioning = false;
+      
       const handleStart = () => {
         isUserInteractingRef.current = true
+        // Update flag for other components
+        controls.isUserInteracting = true;
         dragDistanceRef.current = 0
         
         // If there's a snap-back animation in progress, cancel it
@@ -64,6 +75,8 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
       
       const handleEnd = () => {
         isUserInteractingRef.current = false
+        // Update flag for other components
+        controls.isUserInteracting = false;
         
         // When user stops interacting, check if we should snap back or stay unfocused
         if (isFocusedRef.current && dragDistanceRef.current < UNFOCUS_DISTANCE_THRESHOLD) {
@@ -126,9 +139,14 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
         controls.removeEventListener('start', handleStart)
         controls.removeEventListener('end', handleEnd)
         controls.removeEventListener('change', handleChange)
+        
+        // Clean up reference when component unmounts
+        if (camera.userData.controls === controls) {
+          delete camera.userData.controls;
+        }
       }
     }
-  }, [controlsRef.current, activeTab, moonPosition, onFocusChange])
+  }, [controlsRef.current, activeTab, planetPositions, onFocusChange, camera])
   
   // Animation to snap back to the planet when user releases with small drag
   const startSnapBackAnimation = () => {
@@ -223,7 +241,9 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
         controls: controlsRef.current,
         fromTab: prevTab,
         toTab: activeTab,
-        moonPosition,
+        moonPosition: planetPositions.moonPosition,
+        earthPosition: planetPositions.earthPosition,
+        marsPosition: planetPositions.marsPosition,
         target,
         zoom,
         isUserInteractingRef,
@@ -231,7 +251,7 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
         setZoom
       })
     }
-  }, [activeTab, camera, moonPosition, target, zoom, setZoom, onFocusChange])
+  }, [activeTab, camera, planetPositions, target, zoom, setZoom, onFocusChange])
   
   // Use frame to continuously update target when following the moon (but only when not transitioning)
   useFrame(() => {
@@ -241,7 +261,7 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
         animationFrameRef.current === null &&
         snapBackAnimationRef.current === null &&
         isFocusedRef.current) {
-      controlsRef.current.target.set(...moonPosition)
+      controlsRef.current.target.set(...planetPositions.moonPosition)
     }
   })
   
@@ -253,7 +273,11 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
         !isUserInteractingRef.current && 
         isFocusedRef.current) {
       // Force the orbit controls to use the new zoom distance
-      const effectiveTarget = activeTab === 'Experience' ? moonPosition : target
+      const effectiveTarget = activeTab === 'Experience' 
+        ? planetPositions.moonPosition 
+        : activeTab === 'Projects'
+          ? planetPositions.marsPosition
+          : planetPositions.earthPosition;
       
       // Calculate direction vector from target to camera
       const dirX = camera.position.x - effectiveTarget[0]
@@ -280,7 +304,7 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
         controlsRef.current.update()
       }
     }
-  }, [zoom, camera, activeTab, moonPosition, target, animationFrameRef.current])
+  }, [zoom, camera, activeTab, planetPositions, target, animationFrameRef.current])
 
   // For double-click focusing behavior
   const handleDoubleClick = (e: any) => {

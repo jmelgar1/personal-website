@@ -51,7 +51,7 @@ const contentData: ContentData = {
       {
         title: "Meal Planner",
         details: [
-          "that one project balls.",
+          "that one project test project - 1234567890.",
           "Extra details for scrolling test.",
           "More details for scrolling test."
         ]

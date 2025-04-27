@@ -1,4 +1,4 @@
-import { Camera, Object3D } from 'three'
+import { Camera } from 'three'
 import { MutableRefObject } from 'react'
 
 interface PlanetTransitionParams {
@@ -7,6 +7,8 @@ interface PlanetTransitionParams {
   fromTab: string;
   toTab: string;
   moonPosition: [number, number, number];
+  earthPosition: [number, number, number];
+  marsPosition: [number, number, number];
   target: [number, number, number];
   zoom: number;
   isUserInteractingRef: MutableRefObject<boolean>;
@@ -27,6 +29,8 @@ export const planetTransition = ({
   fromTab,
   toTab,
   moonPosition,
+  earthPosition,
+  marsPosition,
   target,
   zoom,
   isUserInteractingRef,
@@ -41,16 +45,16 @@ export const planetTransition = ({
   let endTarget: [number, number, number]
   switch(toTab) {
     case 'About Me':
-      endTarget = [0, 0, 0] // Earth
+      endTarget = [...earthPosition] // Earth from context
       break
     case 'Experience':
-      endTarget = [...moonPosition] // Moon's current position
+      endTarget = [...moonPosition] // Moon's position from context
       break
     case 'Projects':
-      endTarget = [0, 0, 13] // Mars
+      endTarget = [...marsPosition] // Mars from context
       break
     default:
-      endTarget = [0, 0, 0]
+      endTarget = [...earthPosition]
   }
   
   // Use current zoom level - don't change it
@@ -96,10 +100,14 @@ export const planetTransition = ({
   const startTime = Date.now()
   const duration = 2000 // Longer, smoother transition (2 seconds)
   
+  // Start a smooth transition between planets
   const animateTransition = () => {
     if (isUserInteractingRef.current) {
       // User took control, stop animation
       console.log('Transition interrupted by user interaction')
+      if (controls) {
+        controls.isTransitioning = false;
+      }
       animationFrameRef.current = null
       return
     }
@@ -162,6 +170,8 @@ export const planetTransition = ({
       camera.position.set(endPosition[0], endPosition[1], endPosition[2])
       if (controls) {
         controls.target.set(endTarget[0], endTarget[1], endTarget[2])
+        // Mark transition as complete
+        controls.isTransitioning = false;
       }
       
       // Log final distance for verification
@@ -180,6 +190,11 @@ export const planetTransition = ({
     if (controls) {
       controls.update()
     }
+  }
+  
+  // Set transition in progress flag
+  if (controls) {
+    controls.isTransitioning = true;
   }
   
   // Start animation
