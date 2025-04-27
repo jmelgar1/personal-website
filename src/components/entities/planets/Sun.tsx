@@ -19,9 +19,7 @@ const Sun: React.FC = () => {
   const sunPosition = [25, 10, -50]
 
   // Load textures with the correct paths that work in the app
-  useEffect(() => {
-    console.log('Loading lens flare textures...');
-    
+  useEffect(() => {    
     const textureLoader = new TextureLoader();
     const texturesToLoad = [
       '/images/lensflare/lensflare0.png',
@@ -36,12 +34,10 @@ const Sun: React.FC = () => {
       textureLoader.load(
         path,
         (texture) => {
-          console.log(`Successfully loaded ${path}`);
           loadedTextures[index] = texture;
           loaded++;
           
           if (loaded === texturesToLoad.length) {
-            console.log('All textures loaded successfully');
             setTextures(loadedTextures);
             setTexturesLoaded(true);
           }
@@ -58,10 +54,7 @@ const Sun: React.FC = () => {
   useEffect(() => {
     if (!directionalLightRef.current || !texturesLoaded || textures.length !== 3) {
       return;
-    }
-    
-    console.log('Creating lens flare with loaded textures');
-      
+    }      
     try {
       // Create lens flare
       const lensflare = new Lensflare();
@@ -76,9 +69,7 @@ const Sun: React.FC = () => {
       
       // Add lens flare to the directional light
       directionalLightRef.current.add(lensflare);
-      
-      console.log('Lens flare added to Sun');
-      
+            
       // Clean up on unmount
       return () => {
         if (directionalLightRef.current) {

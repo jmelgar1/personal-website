@@ -1,25 +1,20 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react'
 import { Html } from '@react-three/drei'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
 interface HolographicPanelProps {
   position: [number, number, number];
   children: React.ReactNode;
+  onHover?: (isHovered: boolean, position: THREE.Vector3, normal: THREE.Vector3) => void;
 }
 
 // Holographic panel common styles and effects
-const HolographicPanel: React.FC<HolographicPanelProps> = ({ position, children }) => {
+const HolographicPanel: React.FC<HolographicPanelProps> = ({ position, children, onHover }) => {
   const groupRef = useRef<THREE.Group>(null)
   const htmlRef = useRef<HTMLDivElement>(null)
   const [hovered, setHovered] = useState(false)
   const [scale, setScale] = useState(0.25)
-  const { camera } = useThree()
-  
-  // Store original camera position and targets for hover transitions
-  const originalPositionRef = useRef<THREE.Vector3 | null>(null)
-  const originalTargetRef = useRef<THREE.Vector3 | null>(null)
-  const transitionInProgressRef = useRef<boolean>(false)
   
   // Add subtle floating animation and handle scale changes
   useFrame(({ clock }) => {
@@ -43,180 +38,6 @@ const HolographicPanel: React.FC<HolographicPanelProps> = ({ position, children 
     }
   })
   
-  // Handle camera transition when hovering over panel
-  useEffect(() => {
-    if (!groupRef.current) return;
-    
-    // When hover state changes, handle camera transition
-    if (hovered) {
-      // Get controls and check if user is currently interacting
-      const controls = (camera as any).userData.controls;
-      if (!controls || 
-          controls.isUserInteracting || 
-          (controls.isTransitioning === true)) {
-        return; // Don't transition if controls are being used or a transition is in progress
-      }
-      
-      // Save original camera position and rotation
-      if (!originalPositionRef.current) {
-        originalPositionRef.current = camera.position.clone();
-        originalTargetRef.current = new THREE.Vector3();
-        
-        // If controls exist, use their target (assuming OrbitControls)
-        if (controls && controls.target) {
-          originalTargetRef.current.copy(controls.target);
-        }
-      }
-      
-      // Calculate new position for camera to face panel
-      const panelWorldPos = new THREE.Vector3();
-      groupRef.current.getWorldPosition(panelWorldPos);
-      
-      // Start transition
-      animateCameraToPanel(panelWorldPos);
-    } else if (originalPositionRef.current) {
-      // Transition back to original position when hover ends
-      animateCameraBackToOriginal();
-    }
-    
-    // Cleanup transition on unmount
-    return () => {
-      if (transitionInProgressRef.current) {
-        transitionInProgressRef.current = false;
-      }
-    };
-  }, [hovered, camera]);
-  
-  // Animate camera to face panel
-  const animateCameraToPanel = (panelPosition: THREE.Vector3) => {
-    if (!originalPositionRef.current || transitionInProgressRef.current) return;
-    
-    transitionInProgressRef.current = true;
-    const startPos = camera.position.clone();
-    const controls = (camera as any).userData.controls;
-    
-    if (!controls) {
-      transitionInProgressRef.current = false;
-      return;
-    }
-    
-    const startTarget = controls.target.clone();
-    const planetPos = startTarget.clone(); // The planet the camera is currently targeting
-    
-    // Calculate direction from planet to panel
-    const panelToPlanetDir = new THREE.Vector3().subVectors(panelPosition, planetPos).normalize();
-    
-    // Calculate a position that's slightly offset from direct panel view
-    // This creates a view that shows both panel and planet
-    const offsetDistance = 3; // How far to offset from direct view
-    const idealTarget = new THREE.Vector3().addVectors(
-      planetPos,
-      new THREE.Vector3().subVectors(panelPosition, planetPos).multiplyScalar(0.4)
-    );
-    
-    // Calculate ideal camera position - opposite of panel relative to the planet
-    const idealPos = new THREE.Vector3().addVectors(
-      idealTarget,
-      panelToPlanetDir.clone().multiplyScalar(-offsetDistance)
-    );
-    
-    // Limit vertical movement to avoid weird angles
-    idealPos.y = Math.min(Math.max(idealPos.y, planetPos.y - 1), planetPos.y + 2);
-    
-    // Animate
-    const duration = 400; // ms - short transition
-    const startTime = performance.now();
-    
-    const animate = () => {
-      if (!transitionInProgressRef.current) return;
-      
-      const now = performance.now();
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Ease in-out function
-      const easeProgress = progress < 0.5 
-        ? 4 * progress * progress * progress 
-        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-      
-      // Interpolate position
-      camera.position.lerpVectors(startPos, idealPos, easeProgress);
-      
-      // Interpolate target
-      controls.target.lerpVectors(startTarget, idealTarget, easeProgress);
-      
-      // Update controls
-      controls.update();
-      
-      // Continue animation if not complete
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        transitionInProgressRef.current = false;
-      }
-    };
-    
-    // Start animation
-    requestAnimationFrame(animate);
-  };
-  
-  // Animate camera back to original position
-  const animateCameraBackToOriginal = () => {
-    if (!originalPositionRef.current || !originalTargetRef.current || transitionInProgressRef.current) return;
-    
-    transitionInProgressRef.current = true;
-    const startPos = camera.position.clone();
-    const controls = (camera as any).userData.controls;
-    
-    if (!controls) {
-      transitionInProgressRef.current = false;
-      return;
-    }
-    
-    const startTarget = controls.target.clone();
-    const targetPos = originalPositionRef.current;
-    const targetTarget = originalTargetRef.current;
-    
-    // Animate
-    const duration = 400; // ms - short transition
-    const startTime = performance.now();
-    
-    const animate = () => {
-      if (!transitionInProgressRef.current) return;
-      
-      const now = performance.now();
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Ease in-out function
-      const easeProgress = progress < 0.5 
-        ? 4 * progress * progress * progress 
-        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-      
-      // Interpolate position
-      camera.position.lerpVectors(startPos, targetPos, easeProgress);
-      
-      // Interpolate target
-      controls.target.lerpVectors(startTarget, targetTarget, easeProgress);
-      
-      // Update controls
-      controls.update();
-      
-      // Continue animation if not complete
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        transitionInProgressRef.current = false;
-        // Clear original refs after returning
-        originalPositionRef.current = null;
-        originalTargetRef.current = null;
-      }
-    };
-    
-    // Start animation
-    requestAnimationFrame(animate);
-  };
-  
   // Use a direct DOM approach to handle wheel events on the container
   useEffect(() => {
     const htmlElement = htmlRef.current;
@@ -234,12 +55,35 @@ const HolographicPanel: React.FC<HolographicPanelProps> = ({ position, children 
       console.log('Mouse entered HTML element');
       setHovered(true);
       document.body.style.cursor = 'auto';
+      
+      // Notify parent component about hover state change with position and normal vector
+      if (onHover && groupRef.current) {
+        const panelPosition = new THREE.Vector3();
+        groupRef.current.getWorldPosition(panelPosition);
+        
+        // Calculate normal vector (the direction the panel is facing)
+        const normal = new THREE.Vector3(0, 0, 1); // Default panel faces +Z direction
+        normal.applyQuaternion(groupRef.current.quaternion);
+        
+        onHover(true, panelPosition, normal);
+      }
     };
 
     const handleMouseLeave = () => {
       console.log('Mouse left HTML element');
       setHovered(false);
       document.body.style.cursor = 'grab';
+      
+      // Notify parent about hover end
+      if (onHover && groupRef.current) {
+        const panelPosition = new THREE.Vector3();
+        groupRef.current.getWorldPosition(panelPosition);
+        
+        const normal = new THREE.Vector3(0, 0, 1);
+        normal.applyQuaternion(groupRef.current.quaternion);
+        
+        onHover(false, panelPosition, normal);
+      }
     };
     
     // Add event listeners directly to the HTML element
@@ -252,18 +96,40 @@ const HolographicPanel: React.FC<HolographicPanelProps> = ({ position, children 
       htmlElement.removeEventListener('mouseenter', handleMouseEnter);
       htmlElement.removeEventListener('mouseleave', handleMouseLeave);
     };
-  }, []);
+  }, [onHover]);
   
   // For Three.js pointer events
   const handlePointerEnter = useCallback(() => {
     console.log('Pointer entered Three.js element');
     setHovered(true);
-  }, []);
+    
+    // Notify parent component about hover state change
+    if (onHover && groupRef.current) {
+      const panelPosition = new THREE.Vector3();
+      groupRef.current.getWorldPosition(panelPosition);
+      
+      const normal = new THREE.Vector3(0, 0, 1);
+      normal.applyQuaternion(groupRef.current.quaternion);
+      
+      onHover(true, panelPosition, normal);
+    }
+  }, [onHover]);
   
   const handlePointerLeave = useCallback(() => {
     console.log('Pointer left Three.js element');
     setHovered(false);
-  }, []);
+    
+    // Notify parent about hover end
+    if (onHover && groupRef.current) {
+      const panelPosition = new THREE.Vector3();
+      groupRef.current.getWorldPosition(panelPosition);
+      
+      const normal = new THREE.Vector3(0, 0, 1);
+      normal.applyQuaternion(groupRef.current.quaternion);
+      
+      onHover(false, panelPosition, normal);
+    }
+  }, [onHover]);
   
   return (
     <group ref={groupRef} position={position}>  

@@ -10,12 +10,14 @@ interface HolographicContentProps {
   type: ContentType;
   planetPosition?: [number, number, number];
   offset?: [number, number, number];
+  onPanelHover?: (isHovered: boolean, position: THREE.Vector3, normal: THREE.Vector3) => void;
 }
 
 const HolographicContent: React.FC<HolographicContentProps> = ({ 
   type, 
   planetPosition = [0, 0, 0],
-  offset = [2.5, 0, 0]
+  offset = [2.5, 0, 0],
+  onPanelHover
 }) => {
   const groupRef = useRef<THREE.Group>(null)
   
@@ -29,6 +31,13 @@ const HolographicContent: React.FC<HolographicContentProps> = ({
       )
     }
   })
+
+  // Handler for panel hover events
+  const handlePanelHover = (isHovered: boolean, position: THREE.Vector3, normal: THREE.Vector3) => {
+    if (onPanelHover) {
+      onPanelHover(isHovered, position, normal);
+    }
+  };
 
   const renderAboutMe = () => (
     <>
@@ -107,7 +116,7 @@ const HolographicContent: React.FC<HolographicContentProps> = ({
   
   return (
     <group ref={groupRef}>
-      <HolographicPanel position={[0, 0, 0]}>
+      <HolographicPanel position={[0, 0, 0]} onHover={handlePanelHover}>
         {renderContent()}
       </HolographicPanel>
     </group>

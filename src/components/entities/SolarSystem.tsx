@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import Canvas3D from '../core/Canvas3D'
 import CameraManager from '../core/CameraManager'
 import UIOverlay from '../ui/UIOverlay'
@@ -9,9 +9,15 @@ import DebugOverlay from '../ui/DebugOverlay'
 import ControlsPanel from '../ui/ControlsPanel'
 import { AppStateProvider, useAppState } from '../../contexts/AppStateContext'
 import { PlanetPositionProvider, PlanetPositionContext } from '../../contexts/PlanetPositionContext'
+import * as THREE from 'three'
+import { useThree } from '@react-three/fiber'
 
 // Component to integrate TabContent with planet positions from context
-const TabContentWithContext = () => {
+const TabContentWithContext = ({ 
+  onPanelHover 
+}: { 
+  onPanelHover?: (isHovered: boolean, position: THREE.Vector3, normal: THREE.Vector3) => void 
+}) => {
   const { activeTab } = useAppState()
   const planetPositions = React.useContext(PlanetPositionContext)
 
@@ -22,9 +28,65 @@ const TabContentWithContext = () => {
       moonPosition={planetPositions.moonPosition}
       earthPosition={planetPositions.earthPosition}
       marsPosition={planetPositions.marsPosition}
+      onPanelHover={onPanelHover}
     />
   )
 }
+
+// Panel handler component with useThree access
+const PanelTransitionHandler: React.FC<{
+  onPanelHover: (isHovered: boolean, position: THREE.Vector3, normal: THREE.Vector3) => void;
+  controlsRef: React.RefObject<any>;
+}> = ({ onPanelHover, controlsRef }) => {
+  const { camera } = useThree();
+  
+  const handlePanelHover = (isHovered: boolean, position: THREE.Vector3, normal: THREE.Vector3) => {
+    if (isHovered) {
+      // Store current camera state to return to later
+      const currentPosition = camera.position.clone();
+      const currentTarget = controlsRef.current ? 
+                           new THREE.Vector3().copy(controlsRef.current.target) : 
+                           new THREE.Vector3();
+      
+      // Pass both the panel info and the current camera info
+      onPanelHover(true, position, normal);
+      
+      // Send the camera information separately
+      if (controlsRef.current && window.setTimeout) {
+        // Use setTimeout to ensure state updates before transition starts
+        window.setTimeout(() => {
+          controlsRef.current._previousCameraPosition = currentPosition;
+          controlsRef.current._previousCameraTarget = currentTarget;
+        }, 0);
+      }
+    } else {
+      onPanelHover(false, position, normal);
+    }
+  };
+  
+  return <TabContentWithContext onPanelHover={handlePanelHover} />;
+}
+
+// Planet controls wrapper with useThree access
+const PlanetControlsWrapper = React.forwardRef<any, {
+  zoom: number;
+  target: [number, number, number];
+  activeTab: string;
+  moonPosition: [number, number, number];
+  setZoom?: (zoom: number) => void;
+  onFocusChange?: (isFocused: boolean) => void;
+  isPanelFocused?: boolean;
+  focusedPanelPosition?: THREE.Vector3 | null;
+  focusedPanelNormal?: THREE.Vector3 | null;
+  previousCameraPosition?: THREE.Vector3 | null;
+  previousCameraTarget?: THREE.Vector3 | null;
+  panelAnimationRef?: React.MutableRefObject<number | null>;
+  setIsPanelFocused?: (focused: boolean) => void;
+  isUserInteractingRef?: React.MutableRefObject<boolean>;
+  animationFrameRef?: React.MutableRefObject<number | null>;
+}>((props, ref) => {
+  return <PlanetControls {...props} ref={ref} />;
+});
 
 // Inner component with all the functionality and wrapped in contexts
 const SolarSystemInner: React.FC<{ className?: string }> = ({ className }) => {
@@ -43,6 +105,36 @@ const SolarSystemInner: React.FC<{ className?: string }> = ({ className }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const wheelVelocityRef = useRef(0)
   const momentumFrameRef = useRef<number | null>(null)
+  
+  // Panel focusing state
+  const [isPanelFocused, setIsPanelFocused] = useState(false)
+  const [focusedPanelPosition, setFocusedPanelPosition] = useState<THREE.Vector3 | null>(null)
+  const [focusedPanelNormal, setFocusedPanelNormal] = useState<THREE.Vector3 | null>(null)
+  const [previousCameraPosition, setPreviousCameraPosition] = useState<THREE.Vector3 | null>(null)
+  const [previousCameraTarget, setPreviousCameraTarget] = useState<THREE.Vector3 | null>(null)
+  const panelAnimationRef = useRef<number | null>(null)
+  
+  // Handle panel hover events from TabContent
+  const handlePanelHover = (isHovered: boolean, position: THREE.Vector3, normal: THREE.Vector3) => {
+    if (isHovered && !isPanelFocused) {
+      // Store camera state references
+      setPreviousCameraPosition(position.clone());
+      setPreviousCameraTarget(normal.clone());
+      
+      // Save focus panel data
+      setFocusedPanelPosition(position)
+      setFocusedPanelNormal(normal)
+      setIsPanelFocused(true)
+    } else if (!isHovered && isPanelFocused) {
+      // Leaving panel focus
+      setIsPanelFocused(false)
+    }
+  }
+
+  // Controls references
+  const controlsRef = useRef<any>(null)
+  const isUserInteractingRef = useRef(false)
+  const animationFrameRef = useRef<number | null>(null)
 
   // Implement keyboard zoom handling
   useEffect(() => {
@@ -139,16 +231,26 @@ const SolarSystemInner: React.FC<{ className?: string }> = ({ className }) => {
         <PlanetarySystem />
         
         {/* Content panels */}
-        <TabContentWithContext />
+        <PanelTransitionHandler onPanelHover={handlePanelHover} controlsRef={controlsRef} />
         
         {/* Controls for camera and interactions */}
-        <PlanetControls
+        <PlanetControlsWrapper
           zoom={zoom}
           target={cameraTarget}
           activeTab={activeTab}
           moonPosition={planetPositions.moonPosition}
           setZoom={setZoom}
           onFocusChange={handleFocusChange}
+          ref={controlsRef}
+          isPanelFocused={isPanelFocused}
+          focusedPanelPosition={focusedPanelPosition}
+          focusedPanelNormal={focusedPanelNormal}
+          previousCameraPosition={previousCameraPosition}
+          previousCameraTarget={previousCameraTarget}
+          panelAnimationRef={panelAnimationRef}
+          setIsPanelFocused={setIsPanelFocused}
+          isUserInteractingRef={isUserInteractingRef}
+          animationFrameRef={animationFrameRef}
         />
         
         {/* Camera tracking */}

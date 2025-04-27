@@ -14,7 +14,6 @@ const Mars = forwardRef<Mesh, MarsProps>(({ rotationSpeed = 0.04 }, ref) => {
   // Load Mars texture
   const marsTexture = useTexture('/images/planets/mars/mars_map.png', (texture) => {
     setTextureLoaded(true)
-    console.log('Mars texture loaded successfully')
   })
   
   // Apply texture enhancements

@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useContext } from 'react'
+import React, { useEffect, useRef, useContext, forwardRef, useImperativeHandle } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
-import { planetTransition } from '../utils/transitions'
+import { planetTransition, panelTransition } from '../utils/transitions'
 import { PlanetPositionContext } from '../../contexts/PlanetPositionContext'
+import * as THREE from 'three'
 
 export interface PlanetControlsProps {
   zoom: number;
@@ -11,26 +12,51 @@ export interface PlanetControlsProps {
   moonPosition: [number, number, number];
   setZoom?: (zoom: number) => void;
   onFocusChange?: (isFocused: boolean) => void;
+  isPanelFocused?: boolean;
+  focusedPanelPosition?: THREE.Vector3 | null;
+  focusedPanelNormal?: THREE.Vector3 | null;
+  previousCameraPosition?: THREE.Vector3 | null;
+  previousCameraTarget?: THREE.Vector3 | null;
+  panelAnimationRef?: React.MutableRefObject<number | null>;
+  setIsPanelFocused?: (focused: boolean) => void;
+  isUserInteractingRef?: React.MutableRefObject<boolean>;
+  animationFrameRef?: React.MutableRefObject<number | null>;
 }
 
-const PlanetControls: React.FC<PlanetControlsProps> = ({ 
+const PlanetControls = forwardRef<any, PlanetControlsProps>(({ 
   zoom, 
   target, 
   activeTab, 
   moonPosition,
   setZoom,
-  onFocusChange
-}) => {
+  onFocusChange,
+  isPanelFocused,
+  focusedPanelPosition,
+  focusedPanelNormal,
+  previousCameraPosition,
+  previousCameraTarget,
+  panelAnimationRef,
+  setIsPanelFocused,
+  isUserInteractingRef: externalUserInteractingRef,
+  animationFrameRef: externalAnimationFrameRef
+}, ref) => {
   const { camera } = useThree()
   const controlsRef = useRef<any>(null)
-  const isUserInteractingRef = useRef(false)
+  const internalUserInteractingRef = useRef(false)
   const lastTabChangeRef = useRef(activeTab)
-  const animationFrameRef = useRef<number | null>(null)
+  const internalAnimationFrameRef = useRef<number | null>(null)
   const isFocusedRef = useRef(true)
   const dragDistanceRef = useRef(0)
   const lastTargetRef = useRef<[number, number, number]>([0, 0, 0])
   const snapBackAnimationRef = useRef<number | null>(null)
   const planetPositions = useContext(PlanetPositionContext)
+  
+  // Use either external or internal refs
+  const isUserInteractingRef = externalUserInteractingRef || internalUserInteractingRef
+  const animationFrameRef = externalAnimationFrameRef || internalAnimationFrameRef
+  
+  // Forward ref to the controls
+  useImperativeHandle(ref, () => controlsRef.current);
   
   // Constants for unfocusing behavior - increased threshold for more intentional unfocusing
   const UNFOCUS_DISTANCE_THRESHOLD = 10 // Requires more dragging to unfocus
@@ -48,22 +74,66 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
     }
   }
   
+  // Handle panel focus changes
+  useEffect(() => {
+    if (!focusedPanelPosition || !focusedPanelNormal || !panelAnimationRef || !setIsPanelFocused) {
+      return;
+    }
+    
+    // Check for stored previous camera positions first
+    const storedPreviousPosition = (controlsRef.current && controlsRef.current._previousCameraPosition) || null;
+    const storedPreviousTarget = (controlsRef.current && controlsRef.current._previousCameraTarget) || null;
+    
+    // Use stored positions if available, otherwise fall back to provided props
+    const effectivePreviousPosition = storedPreviousPosition || previousCameraPosition;
+    const effectivePreviousTarget = storedPreviousTarget || previousCameraTarget;
+    
+    if (isPanelFocused) {
+      // Start panel transition when focusing
+      panelTransition({
+        camera,
+        controls: controlsRef.current,
+        panelPosition: focusedPanelPosition,
+        panelNormal: focusedPanelNormal,
+        isEntering: true,
+        previousTarget: effectivePreviousTarget || undefined,
+        previousPosition: effectivePreviousPosition || undefined,
+        isUserInteractingRef,
+        animationFrameRef,
+        panelAnimationRef,
+        setPanelFocused: setIsPanelFocused
+      });
+    } else if (effectivePreviousPosition && effectivePreviousTarget) {
+      // When leaving panel focus, transition back to previous position
+      panelTransition({
+        camera,
+        controls: controlsRef.current,
+        panelPosition: focusedPanelPosition,
+        panelNormal: focusedPanelNormal,
+        isEntering: false,
+        previousTarget: effectivePreviousTarget,
+        previousPosition: effectivePreviousPosition,
+        isUserInteractingRef,
+        animationFrameRef,
+        panelAnimationRef,
+        setPanelFocused: setIsPanelFocused
+      });
+      
+      // Clear stored positions after using them
+      if (controlsRef.current) {
+        controlsRef.current._previousCameraPosition = null;
+        controlsRef.current._previousCameraTarget = null;
+      }
+    }
+  }, [isPanelFocused, focusedPanelPosition, focusedPanelNormal, previousCameraPosition, previousCameraTarget]);
+  
   // Track when user is manually controlling the camera
   useEffect(() => {
     if (controlsRef.current) {
       const controls = controlsRef.current
       
-      // Store reference to controls in camera's userData for other components to access
-      camera.userData.controls = controls;
-      
-      // Add flags to communicate with other components
-      controls.isUserInteracting = false;
-      controls.isTransitioning = false;
-      
       const handleStart = () => {
         isUserInteractingRef.current = true
-        // Update flag for other components
-        controls.isUserInteracting = true;
         dragDistanceRef.current = 0
         
         // If there's a snap-back animation in progress, cancel it
@@ -75,8 +145,6 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
       
       const handleEnd = () => {
         isUserInteractingRef.current = false
-        // Update flag for other components
-        controls.isUserInteracting = false;
         
         // When user stops interacting, check if we should snap back or stay unfocused
         if (isFocusedRef.current && dragDistanceRef.current < UNFOCUS_DISTANCE_THRESHOLD) {
@@ -139,14 +207,9 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
         controls.removeEventListener('start', handleStart)
         controls.removeEventListener('end', handleEnd)
         controls.removeEventListener('change', handleChange)
-        
-        // Clean up reference when component unmounts
-        if (camera.userData.controls === controls) {
-          delete camera.userData.controls;
-        }
       }
     }
-  }, [controlsRef.current, activeTab, planetPositions, onFocusChange, camera])
+  }, [controlsRef.current, activeTab, planetPositions, onFocusChange])
   
   // Animation to snap back to the planet when user releases with small drag
   const startSnapBackAnimation = () => {
@@ -208,6 +271,9 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
       if (snapBackAnimationRef.current !== null) {
         cancelAnimationFrame(snapBackAnimationRef.current)
       }
+      if (panelAnimationRef && panelAnimationRef.current !== null) {
+        cancelAnimationFrame(panelAnimationRef.current)
+      }
     }
   }, [])
   
@@ -220,6 +286,9 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
       }
       if (snapBackAnimationRef.current !== null) {
         cancelAnimationFrame(snapBackAnimationRef.current)
+      }
+      if (panelAnimationRef && panelAnimationRef.current !== null) {
+        cancelAnimationFrame(panelAnimationRef.current)
       }
       
       const prevTab = lastTabChangeRef.current
@@ -260,7 +329,9 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
         !isUserInteractingRef.current && 
         animationFrameRef.current === null &&
         snapBackAnimationRef.current === null &&
-        isFocusedRef.current) {
+        (!panelAnimationRef || panelAnimationRef.current === null) &&
+        isFocusedRef.current && 
+        !isPanelFocused) {
       controlsRef.current.target.set(...planetPositions.moonPosition)
     }
   })
@@ -270,8 +341,10 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
     if (controlsRef.current && 
         animationFrameRef.current === null && 
         snapBackAnimationRef.current === null &&
+        (!panelAnimationRef || panelAnimationRef.current === null) &&
         !isUserInteractingRef.current && 
-        isFocusedRef.current) {
+        isFocusedRef.current && 
+        !isPanelFocused) {
       // Force the orbit controls to use the new zoom distance
       const effectiveTarget = activeTab === 'Experience' 
         ? planetPositions.moonPosition 
@@ -304,7 +377,7 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
         controlsRef.current.update()
       }
     }
-  }, [zoom, camera, activeTab, planetPositions, target, animationFrameRef.current])
+  }, [zoom, camera, activeTab, planetPositions, target, animationFrameRef.current, isPanelFocused])
 
   // For double-click focusing behavior
   const handleDoubleClick = (e: any) => {
@@ -343,6 +416,6 @@ const PlanetControls: React.FC<PlanetControlsProps> = ({
     makeDefault: true,
     onDoubleClick: handleDoubleClick
   })
-}
+})
 
 export default PlanetControls 
