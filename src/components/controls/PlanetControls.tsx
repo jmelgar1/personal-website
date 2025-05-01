@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useContext, forwardRef, useImperativeHandle } from 'react'
+import React, { useEffect, useRef, useContext, forwardRef, useImperativeHandle, useState } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { planetTransition } from '../transitions/planetTransitions'
@@ -27,8 +27,7 @@ export interface PlanetControlsProps {
 const PlanetControls = forwardRef<any, PlanetControlsProps>(({ 
   zoom, 
   target, 
-  activeTab, 
-  moonPosition,
+  activeTab,
   setZoom,
   onFocusChange,
   isPanelFocused,
@@ -52,6 +51,11 @@ const PlanetControls = forwardRef<any, PlanetControlsProps>(({
   const snapBackAnimationRef = useRef<number | null>(null)
   const planetPositions = useContext(PlanetPositionContext)
   
+  // Keyboard controls state
+  const [keysPressed, setKeysPressed] = useState<Record<string, boolean>>({})
+  const cameraSpeed = useRef(0.15) // Base movement speed
+  const speedModifier = useRef(2.5) // Speed multiplier when holding Control key
+  
   // Use either external or internal refs
   const isUserInteractingRef = externalUserInteractingRef || internalUserInteractingRef
   const animationFrameRef = externalAnimationFrameRef || internalAnimationFrameRef
@@ -74,6 +78,111 @@ const PlanetControls = forwardRef<any, PlanetControlsProps>(({
       return planetPositions.earthPosition
     }
   }
+  
+  // Handle keyboard input for camera movement
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only process keys we're interested in
+      const key = e.key.toLowerCase()
+      if (['w', 'a', 's', 'd', ' ', 'shift', 'control'].includes(key)) {
+        // Prevent default behaviors (e.g., scrolling with space)
+        e.preventDefault()
+        // Update keys state
+        setKeysPressed(prev => ({ ...prev, [key]: true }))
+        
+        // Mark that user is interacting with controls
+        isUserInteractingRef.current = true
+        
+        // Auto-unfocus from planet when using keyboard movement
+        if (isFocusedRef.current && ['w', 'a', 's', 'd', ' ', 'shift'].includes(key)) {
+          isFocusedRef.current = false
+          if (onFocusChange) {
+            onFocusChange(false)
+          }
+          console.log('Unfocused from planet due to keyboard movement')
+        }
+      }
+    }
+    
+    const handleKeyUp = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase()
+      if (['w', 'a', 's', 'd', ' ', 'shift', 'control'].includes(key)) {
+        setKeysPressed(prev => {
+          const newState = { ...prev }
+          delete newState[key]
+          return newState
+        })
+        
+        // Check if any movement keys are still pressed
+        const anyMovementKeyStillPressed = ['w', 'a', 's', 'd', ' ', 'shift'].some(
+          k => keysPressed[k] && k !== key
+        )
+        
+        // If no movement keys are pressed, stop marking as interacting
+        if (!anyMovementKeyStillPressed) {
+          isUserInteractingRef.current = false
+        }
+      }
+    }
+    
+    // Ensure keyboard events don't get stuck when window loses focus
+    const handleBlur = () => {
+      setKeysPressed({})
+      isUserInteractingRef.current = false
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    window.addEventListener('blur', handleBlur)
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('blur', handleBlur)
+    }
+  }, [keysPressed, onFocusChange])
+  
+  // Process camera movement based on keys pressed (in animation frame)
+  useFrame(() => {
+    if (controlsRef.current && Object.keys(keysPressed).length > 0) {
+      const controls = controlsRef.current
+      
+      // Check if any movement keys are pressed
+      const isMoving = ['w', 'a', 's', 'd', ' ', 'shift'].some(key => keysPressed[key])
+      
+      if (isMoving) {
+        // Calculate movement speed (faster when holding Control)
+        const speed = cameraSpeed.current * (keysPressed['control'] ? speedModifier.current : 1)
+        
+        // Get camera's forward, right, and up vectors for movement relative to camera orientation
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).normalize()
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion).normalize()
+        const up = new THREE.Vector3(0, 1, 0) // World up vector for simplicity
+        
+        // Create movement vector
+        const movementVector = new THREE.Vector3(0, 0, 0)
+        
+        // Forward/backward
+        if (keysPressed['w']) movementVector.add(forward.clone().multiplyScalar(speed))
+        if (keysPressed['s']) movementVector.add(forward.clone().multiplyScalar(-speed))
+        
+        // Left/right
+        if (keysPressed['a']) movementVector.add(right.clone().multiplyScalar(-speed))
+        if (keysPressed['d']) movementVector.add(right.clone().multiplyScalar(speed))
+        
+        // Up/down
+        if (keysPressed[' ']) movementVector.add(up.clone().multiplyScalar(speed)) // Space = up
+        if (keysPressed['shift']) movementVector.add(up.clone().multiplyScalar(-speed)) // Shift = down
+        
+        // Apply movement to both camera and target
+        camera.position.add(movementVector)
+        controls.target.add(movementVector)
+        
+        // Update controls
+        controls.update()
+      }
+    }
+  })
   
   // Handle panel focus changes
   useEffect(() => {
@@ -192,9 +301,6 @@ const PlanetControls = forwardRef<any, PlanetControlsProps>(({
             if (dragDistanceRef.current > SNAP_BACK_THRESHOLD) {
               const progress = Math.min(1, (dragDistanceRef.current - SNAP_BACK_THRESHOLD) / 
                                       (UNFOCUS_DISTANCE_THRESHOLD - SNAP_BACK_THRESHOLD))
-              
-              // You could add visual feedback here based on progress
-              // For example, console.log(`Pull progress: ${(progress * 100).toFixed(0)}%`)
             }
           }
         }

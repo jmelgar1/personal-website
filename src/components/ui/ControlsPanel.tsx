@@ -21,6 +21,9 @@ const ControlsPanel: React.FC = () => {
       <p>Controls:</p>
       <p>• Mouse drag to rotate view</p>
       <p>• Scroll to zoom</p>
+      <p>• W/A/S/D keys to move forward/left/backward/right</p>
+      <p>• Space/Shift to move up/down</p>
+      <p>• Hold Control for faster movement</p>
       <p>{`• Press 'R' to toggle Earth rotation: ${earthRotateSpeed > 0 ? 'ON' : 'OFF'}`}</p>
       <p>• Press '+'/'-' to zoom in/out</p>
     </div>
