@@ -15,8 +15,9 @@ const HolographicPanel: React.FC<HolographicPanelProps> = ({ position, children,
   const htmlRef = useRef<HTMLDivElement>(null)
   const [hovered, setHovered] = useState(false)
   const [scale, setScale] = useState(0.25)
+  const lastPosition = useRef(new THREE.Vector3())
   
-  // Add subtle floating animation and handle scale changes
+  // Update position and notify parent when position changes while hovered
   useFrame(({ clock }) => {
     if (groupRef.current) {
       groupRef.current.position.y += Math.sin(clock.getElapsedTime() * 2) * 0.0005
@@ -34,6 +35,31 @@ const HolographicPanel: React.FC<HolographicPanelProps> = ({ position, children,
           const newScale = Math.max(0.25, prev - 0.015)
           return newScale
         })
+      }
+      
+      // If panel is hovered and position has changed, notify parent
+      if (hovered && onHover) {
+        const currentPosition = new THREE.Vector3()
+        groupRef.current.getWorldPosition(currentPosition)
+        
+        // Check if position has changed significantly
+        if (!currentPosition.equals(lastPosition.current) && currentPosition.distanceTo(lastPosition.current) > 0.001) {
+          
+          // Calculate normal vector (the direction the panel is facing)
+          // For a panel, we want the normal to point outward from the front face
+          const normal = new THREE.Vector3(0, 0, 1) // Start with default forward vector
+          
+          // Apply the group's rotation to get the world-space normal
+          const normalMatrix = new THREE.Matrix4()
+          normalMatrix.extractRotation(groupRef.current.matrixWorld)
+          normal.applyMatrix4(normalMatrix)
+          
+          // Notify parent about position update
+          onHover(true, currentPosition, normal)
+          
+          // Update last position
+          lastPosition.current.copy(currentPosition)
+        }
       }
     }
   })
@@ -61,9 +87,16 @@ const HolographicPanel: React.FC<HolographicPanelProps> = ({ position, children,
         const panelPosition = new THREE.Vector3();
         groupRef.current.getWorldPosition(panelPosition);
         
+        // Store initial position
+        lastPosition.current.copy(panelPosition);
+        
         // Calculate normal vector (the direction the panel is facing)
         const normal = new THREE.Vector3(0, 0, 1); // Default panel faces +Z direction
-        normal.applyQuaternion(groupRef.current.quaternion);
+        
+        // Apply the group's rotation to get the world-space normal
+        const normalMatrix = new THREE.Matrix4()
+        normalMatrix.extractRotation(groupRef.current.matrixWorld)
+        normal.applyMatrix4(normalMatrix)
         
         onHover(true, panelPosition, normal);
       }
@@ -80,7 +113,11 @@ const HolographicPanel: React.FC<HolographicPanelProps> = ({ position, children,
         groupRef.current.getWorldPosition(panelPosition);
         
         const normal = new THREE.Vector3(0, 0, 1);
-        normal.applyQuaternion(groupRef.current.quaternion);
+        
+        // Apply the group's rotation to get the world-space normal
+        const normalMatrix = new THREE.Matrix4()
+        normalMatrix.extractRotation(groupRef.current.matrixWorld)
+        normal.applyMatrix4(normalMatrix)
         
         onHover(false, panelPosition, normal);
       }
@@ -109,7 +146,11 @@ const HolographicPanel: React.FC<HolographicPanelProps> = ({ position, children,
       groupRef.current.getWorldPosition(panelPosition);
       
       const normal = new THREE.Vector3(0, 0, 1);
-      normal.applyQuaternion(groupRef.current.quaternion);
+      
+      // Apply the group's rotation to get the world-space normal
+      const normalMatrix = new THREE.Matrix4()
+      normalMatrix.extractRotation(groupRef.current.matrixWorld)
+      normal.applyMatrix4(normalMatrix)
       
       onHover(true, panelPosition, normal);
     }
@@ -125,7 +166,11 @@ const HolographicPanel: React.FC<HolographicPanelProps> = ({ position, children,
       groupRef.current.getWorldPosition(panelPosition);
       
       const normal = new THREE.Vector3(0, 0, 1);
-      normal.applyQuaternion(groupRef.current.quaternion);
+      
+      // Apply the group's rotation to get the world-space normal
+      const normalMatrix = new THREE.Matrix4()
+      normalMatrix.extractRotation(groupRef.current.matrixWorld)
+      normal.applyMatrix4(normalMatrix)
       
       onHover(false, panelPosition, normal);
     }

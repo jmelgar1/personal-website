@@ -1,8 +1,9 @@
-import React, { useRef } from 'react'
+import React, { useRef, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import HolographicPanel from './HolographicPanel'
 import contentData from '../../../data/contentData'
+import { useAppState } from '../../../contexts/AppStateContext'
 
 export type ContentType = 'aboutMe' | 'projects' | 'experience'
 
@@ -20,6 +21,7 @@ const HolographicContent: React.FC<HolographicContentProps> = ({
   onPanelHover
 }) => {
   const groupRef = useRef<THREE.Group>(null)
+  const { setFocusedPanel, setIsFocused } = useAppState()
   
   // Use useFrame to continuously update position relative to the planet
   useFrame(() => {
@@ -34,10 +36,34 @@ const HolographicContent: React.FC<HolographicContentProps> = ({
 
   // Handler for panel hover events
   const handlePanelHover = (isHovered: boolean, position: THREE.Vector3, normal: THREE.Vector3) => {
+    // Update the focusedPanel state in the context
+    setFocusedPanel({
+      isActive: isHovered,
+      position: isHovered ? position : null,
+      normal: isHovered ? normal : null,
+      type: isHovered ? type : null
+    })
+    
+    // Update the isFocused state for backward compatibility
+    setIsFocused(isHovered)
+    
+    // Call the original onPanelHover if provided
     if (onPanelHover) {
       onPanelHover(isHovered, position, normal);
     }
   };
+
+  // Clear focused panel state when component unmounts
+  useEffect(() => {
+    return () => {
+      setFocusedPanel({
+        isActive: false,
+        position: null,
+        normal: null,
+        type: null
+      });
+    };
+  }, [setFocusedPanel]);
 
   const renderAboutMe = () => (
     <>

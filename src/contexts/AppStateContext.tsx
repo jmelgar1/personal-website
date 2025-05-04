@@ -1,4 +1,5 @@
-import React, { createContext, useState, useContext, ReactNode, useMemo, Dispatch, SetStateAction } from 'react'
+import React, { createContext, useState, useContext, ReactNode, useMemo, Dispatch, SetStateAction, useEffect } from 'react'
+import * as THREE from 'three'
 
 interface AppStateContextType {
   activeTab: string;
@@ -23,12 +24,31 @@ interface AppStateContextType {
     target: [number, number, number];
     distance: number;
   }>>;
+  focusedPanel: {
+    isActive: boolean;
+    position: THREE.Vector3 | null;
+    normal: THREE.Vector3 | null;
+    type: string | null;
+  };
+  setFocusedPanel: Dispatch<SetStateAction<{
+    isActive: boolean;
+    position: THREE.Vector3 | null;
+    normal: THREE.Vector3 | null;
+    type: string | null;
+  }>>;
 }
 
 const defaultCameraInfo = {
   position: [0, 0, 0] as [number, number, number],
   target: [0, 0, 0] as [number, number, number],
   distance: 0
+}
+
+const defaultFocusedPanel = {
+  isActive: false,
+  position: null as THREE.Vector3 | null,
+  normal: null as THREE.Vector3 | null,
+  type: null as string | null
 }
 
 export const AppStateContext = createContext<AppStateContextType>({
@@ -46,6 +66,8 @@ export const AppStateContext = createContext<AppStateContextType>({
   setCameraTarget: () => {},
   cameraInfo: defaultCameraInfo,
   setCameraInfo: () => {},
+  focusedPanel: defaultFocusedPanel,
+  setFocusedPanel: () => {},
 })
 
 interface AppStateProviderProps {
@@ -60,25 +82,35 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   const [isFocused, setIsFocused] = useState(true)
   const [cameraTarget, setCameraTarget] = useState<[number, number, number]>([0, 0, 0])
   const [cameraInfo, setCameraInfo] = useState(defaultCameraInfo)
+  const [focusedPanel, setFocusedPanel] = useState(defaultFocusedPanel)
+  
+  // Reset focused panel when tab changes
+  useEffect(() => {
+    // When tab changes, reset panel focus
+    setFocusedPanel(defaultFocusedPanel)
+    setIsFocused(false)
+  }, [activeTab])
   
   // Update camera target when tab changes
-  React.useEffect(() => {
+  useEffect(() => {
     // The controls now handle camera target based on active tab
     // This useEffect just sets initial planet positions
-    switch(activeTab) {
-      case 'About Me':
-        setCameraTarget([0, 0, 0]) // Earth position
-        break
-      case 'Experience':
-        // Moon position handled by context
-        break
-      case 'Projects':
-        setCameraTarget([0, 0, 13]) // Mars position
-        break
-      default:
-        setCameraTarget([0, 0, 0])
+    if (!focusedPanel.isActive) {
+      switch(activeTab) {
+        case 'About Me':
+          setCameraTarget([0, 0, 0]) // Earth position
+          break
+        case 'Experience':
+          // Moon position handled by context
+          break
+        case 'Projects':
+          setCameraTarget([0, 0, 13]) // Mars position
+          break
+        default:
+          setCameraTarget([0, 0, 0])
+      }
     }
-  }, [activeTab])
+  }, [activeTab, focusedPanel.isActive])
   
   const contextValue = useMemo(() => ({
     activeTab,
@@ -95,6 +127,8 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     setCameraTarget,
     cameraInfo,
     setCameraInfo,
+    focusedPanel,
+    setFocusedPanel,
   }), [
     activeTab, 
     zoom, 
@@ -102,7 +136,8 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     cloudsRotateSpeed, 
     isFocused,
     cameraTarget,
-    cameraInfo
+    cameraInfo,
+    focusedPanel
   ])
   
   return (

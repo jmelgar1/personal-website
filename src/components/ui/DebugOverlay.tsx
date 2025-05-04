@@ -7,7 +7,8 @@ const DebugOverlay: React.FC = () => {
     activeTab, 
     isFocused, 
     cameraInfo,
-    earthRotateSpeed
+    earthRotateSpeed,
+    focusedPanel
   } = useAppState()
   
   return (
@@ -41,6 +42,32 @@ const DebugOverlay: React.FC = () => {
         {`X: ${cameraInfo.target[0].toFixed(2)} Y: ${cameraInfo.target[1].toFixed(2)} Z: ${cameraInfo.target[2].toFixed(2)}`}
       </div>
       <div>{`Camera Distance: ${cameraInfo.distance.toFixed(4)}`}</div>
+      
+      {/* Display focused object info if available */}
+      {focusedPanel.isActive && focusedPanel.position && (
+        <>
+          <div style={{ 
+            marginTop: '5px', 
+            paddingTop: '5px', 
+            borderTop: '1px solid rgba(255,255,255,0.3)'
+          }}>
+            {`Focused Object: ${focusedPanel.type || 'Unknown'}`}
+          </div>
+          <div>{`Position:`}</div>
+          <div style={{ marginLeft: '10px' }}>
+            {`X: ${focusedPanel.position.x.toFixed(2)} Y: ${focusedPanel.position.y.toFixed(2)} Z: ${focusedPanel.position.z.toFixed(2)}`}
+          </div>
+          {focusedPanel.normal && (
+            <>
+              <div>{`Normal Vector:`}</div>
+              <div style={{ marginLeft: '10px' }}>
+                {`X: ${focusedPanel.normal.x.toFixed(2)} Y: ${focusedPanel.normal.y.toFixed(2)} Z: ${focusedPanel.normal.z.toFixed(2)}`}
+              </div>
+            </>
+          )}
+        </>
+      )}
+      
       <div style={{ 
         marginTop: '5px', 
         paddingTop: '5px', 
